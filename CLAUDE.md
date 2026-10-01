@@ -85,10 +85,10 @@ plugins/smart-review/                # PLUGIN 1, multi-harness code review
       domain/{api,database,frontend-a11y,typescript-node}.md
       checklist-routing.md           # trigger -> domain checklist -> target lens
       finding-schema.md              # the one shape every lens emits
-      merge-contract.md              # dedup / agreement-weighting / severity rollup / nit cap
+      merge-contract.md              # dedup / agreement / lead filters / severity rollup / nit cap
       severity.md                    # P0-P3 definitions
-      ensemble.md                    # the max fan-out protocol + harness capability check
-      validation.md                  # validator pass + negative-space checks
+      ensemble.md                    # max fan-out, capability check, model panel (default off)
+      validation.md                  # static checks + P0 certainty ladder (ran or unproven)
   agents/*-reviewer.md               # Claude Code ONLY, the subagents max dispatches in the isolated variant
   agents/merge-synthesizer.md        # Claude Code ONLY, the merge stage
   commands/*.md                      # Claude Code ONLY, /smart-review:{min,max,review,add-pr-review,review-pr-comments}
@@ -120,7 +120,8 @@ Modes, routed by `SKILL.md`:
 - **`max`**: spec-gate first (stop early if the diff implements the wrong thing), then the
   ensemble per `references/ensemble.md`. That means **isolated parallel subagents** where the
   harness supports them (Claude Code dispatches `agents/*-reviewer.md`), otherwise a
-  disciplined **sequential lens walk**. Then the merge into one verdict.
+  disciplined **sequential lens walk**. A model panel (`panel: on` or `per-lens`) is
+  optional and off by default; single-model max still merges to one verdict.
 - **auto** (plain `/smart-review` or the skill auto-triggering): routes to min or max by
   diff size (>~150 lines or >~5 files), sensitive paths (auth, crypto, SQL, shell/file
   exec, payments, PII), or an explicit pre-merge/thorough ask.
@@ -142,16 +143,23 @@ Key structural pieces, all under `skills/smart-review/references/`:
   (`{file, line_start, line_end, lens, category, severity, title, why, proposed_move, confidence}`).
   The merge operates mechanically on these fields.
 - **`merge-contract.md`**: dedup by `(category, file, line-overlap-within-3)`,
-  agreement-weighting (≥2 lenses agree gives a confidence + rank bump), conflict resolution
-  (surface both sides), severity rollup to a verdict, hard nit cap (~5 P3s shown).
-- **`ensemble.md`**: the max fan-out protocol and the harness capability check that picks
-  isolated-parallel vs sequential.
+  agreement-weighting (≥2 lenses, or ≥2 models when the panel ran), conflict resolution
+  (surface both sides), lead filters (nitpick gravity, hypothetical, preference, Act On
+  cap ~5 mapped onto P0-P1 / P2 / P3 / Discarded), severity rollup to a verdict, hard nit
+  cap (~5 P3s shown).
+- **`validation.md`**: static re-read, blame, caller guards, intentional patterns, library
+  version, then a certainty ladder for blocking findings. A P0 hard-blocks only after a
+  minimal script or test (`proof: ran`) or an in-app repro. Otherwise tag `unproven` and
+  keep it out of the hard-block.
+- **`ensemble.md`**: the max fan-out protocol, the harness capability check that picks
+  isolated-parallel vs sequential, and the model panel (`off` by default, `on` or
+  `per-lens` when configured). Single-model max stays valid.
 - **`agents/*-reviewer.md`** (Claude Code) are the isolated-variant subagents, registered
   read-only. Each receives *only* the diff, spec, and its lens (plus routed domain) checklist,
   never the author's session or other reviewers' output; that isolation decorrelates their
-  errors. `merge-synthesizer` is the only stage that sees everything. Cross-model routing
-  (per-agent frontmatter `model:`) is the highest-leverage lever for catching more distinct
-  issues. **Each reviewer agent is a Claude Code packaging of a `references/lenses/*.md`
+  errors. `merge-synthesizer` is the only stage that sees everything. Model diversity is
+  the max panel in `ensemble.md` (default off): the orchestrator passes `model` at
+  dispatch time, and does not bake `model:` into reviewer frontmatter. **Each reviewer agent is a Claude Code packaging of a `references/lenses/*.md`
   checklist, so keep the two in sync;** `validate-adapters.sh` checks the reference link exists.
 
 Because subagents cannot spawn subagents, the **top-level agent is always the orchestrator**

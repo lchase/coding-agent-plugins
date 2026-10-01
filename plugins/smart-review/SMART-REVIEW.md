@@ -28,7 +28,7 @@ the skill loads via hook/AGENTS.md and you just ask for a review.
 
 - **`/smart-review:review`** — auto: picks min or max by change size and sensitivity.
 - **`/smart-review:min`** — one pass, one context, no subagents. Fast; for tight loops and small diffs.
-- **`/smart-review:max`** — spec-gate, then the lens ensemble, merged into one verdict. For pre-merge and high-stakes changes. Isolated parallel subagents on Claude Code; a disciplined sequential lens walk on harnesses without subagents (`references/ensemble.md`).
+- **`/smart-review:max`**: spec-gate, then the lens ensemble, merged into one verdict. For pre-merge and high-stakes changes. Isolated parallel subagents on Claude Code; a disciplined sequential lens walk on harnesses without subagents (`references/ensemble.md`). Model panel defaults off. Set `panel: on` or `panel: per-lens` plus `models` when this harness can route more than one model.
 - **`/smart-review:add-pr-review <PR number or URL>`** — fetches a GitHub PR's diff via `gh`, runs the same min/max review, then shows you the report and asks what to publish (all findings, P0/P1 only, a custom subset, or nothing) before posting a summary comment (and inline comments for confirmed P0/P1s). Never approves, requests changes, or merges.
 - **`/smart-review:review-pr-comments <PR number or URL>`** — triages a PR's *existing* unresolved review comments (Copilot, human reviewers, etc.): fetches unresolved threads via GraphQL, classifies each as fix/docs/explain/disagree, gates on your approval before editing code, gates again before pushing, then replies to and resolves each addressed thread. Not a review pass — glue around comment threads, not the lenses.
 
@@ -41,8 +41,8 @@ The skill also triggers automatically when you ask Claude to review code, check 
 
 min :  scope diff ─► all 6 lenses in ONE context ─► merge ─► verdict
 max :  scope diff ─► SPEC-GATE ─► lens ensemble ─► merge ─► verdict
-        ensemble = isolated parallel subagents (Claude Code, + optional cross-model)
-                   OR sequential lens walk (harnesses without subagents)
+        ensemble = isolated parallel subagents (Claude Code; model panel when configured)
+                   OR sequential lens walk (harnesses without subagents; panel off unless models route)
 ```
 
 Component layout:
@@ -52,21 +52,35 @@ Component layout:
   - **`references/lenses/`** — the six review perspectives: spec-conformance, correctness, security, performance, design, tests. Fixed set.
   - **`references/domain/`** — database, TypeScript/Node, API, frontend/a11y. Injected into the relevant lens when the diff touches that domain (see `references/checklist-routing.md`). Add depth by adding a checklist + a routing row, not a new reviewer.
   - **`references/finding-schema.md`** — the one shape every lens emits, so findings can be merged mechanically.
-  - **`references/merge-contract.md`** — dedup, agreement-weighting, conflict resolution, severity rollup, structure-over-nits, nit cap. This is the product.
-  - **`references/ensemble.md`** — the max fan-out protocol and the harness capability check.
-- **Reviewer subagents** (`agents/`, Claude Code only) — the isolated reviewers `max` fans out (`*-reviewer`), plus `merge-synthesizer`. Read-only (`tools: Read, Grep, Glob`); each runs in its own context, which keeps findings decorrelated. Each mirrors a `references/lenses/*.md` checklist — kept in sync, checked by `scripts/validate-adapters.sh`.
+  - **`references/merge-contract.md`**: dedup, agreement-weighting (lenses, and models when the panel ran), conflict resolution, validation, lead filters, severity rollup, structure-over-nits, nit cap. This is the product.
+  - **`references/validation.md`**: static re-check, then a certainty ladder. A P0 hard-blocks only after a minimal script or test (`proof: ran`), or an in-app repro. Otherwise it ships as `unproven` and does not hard-block.
+  - **`references/ensemble.md`**: the max fan-out protocol, the harness capability check, and the model panel (`off` by default, `on` or `per-lens` when configured).
+- **Reviewer subagents** (`agents/`, Claude Code only): the isolated reviewers `max` fans out (`*-reviewer`), plus `merge-synthesizer`. Reviewers are read-only (`tools: Read, Grep, Glob`). The merge synthesizer also has Bash, for blame and for the validation proof command. Each runs in its own context, which keeps findings decorrelated. Each reviewer mirrors a `references/lenses/*.md` checklist, kept in sync, checked by `scripts/validate-adapters.sh`. The orchestrator passes `model` at dispatch time when the panel is on.
 - **Commands** (`commands/`, Claude Code only) — the entry points above.
 - **Hooks** (`hooks/`) — a session-start bootstrap that nudges harnesses without description-based skill triggering to load the skill on review requests.
 
 ## Key design choices
 
-- **Context isolation** — in max, each reviewer sees only the diff, the spec, and its checklist; never the author's reasoning or the other reviewers. Running them as separate subagents gives that isolation by construction, and it's what makes the ensemble beat any single pass.
+- **Context isolation**: in max, each reviewer sees only the filled template (intent, diff, spec, its checklist), never the author's reasoning or the other reviewers. Running them as separate subagents gives that isolation by construction, and it's what makes the ensemble beat any single pass.
 - **Spec-gate first** — don't spend quality-review budget on code that implements the wrong thing.
-- **Bounded reviewers, unbounded coverage** — six lenses; domain depth rides in as checklists, so the reviewer count (and cost, latency, noise) stays fixed as coverage grows.
+- **Bounded reviewers, unbounded coverage**: six lenses; domain depth rides in as checklists, so the reviewer count stays fixed as coverage grows. A model panel multiplies that set only when you turn it on.
 
-## Cross-model routing (optional, highest-leverage)
+## Model panel (first-class max config, default off)
 
-Same model reviewing alone repeats its own blind spots; different models miss different things, so routing lenses across models is the single biggest lever on "every reviewer finds something different". Because each lens is its own subagent, you can set a per-reviewer model in the agent's frontmatter — e.g. add a `model:` line to `agents/security-reviewer.md` and a different one to `agents/design-reviewer.md`. Confirm the accepted `model` values (and that per-subagent model selection is supported) for your Claude Code version before relying on it; if it isn't available, the default — one model, isolated contexts — still works and still decorrelates via isolation.
+Same model reviewing alone repeats its own blind spots. Different models miss different things. The adversarial signal is that diversity, not assigned personas. `references/ensemble.md` is the knob:
+
+```
+panel: off | on | per-lens
+models: <model-a>, <model-b>
+```
+
+- **`off`** (default). Single-model max. Complete on a harness that only has one model.
+- **`on`**. The same filled template (intent, diff, spec, that lens's checklist) goes to each model. Merge agreement across models and lenses.
+- **`per-lens`**. Cheaper: zip the model list across the five quality lenses.
+
+On Claude Code the orchestrator passes `model` when it dispatches `agents/*-reviewer.md`. Do not bake a `model:` line into those files; the panel is per run. If the harness cannot route models, say so and run single-model max. Use model ids the harness accepts.
+
+Try it: `/smart-review:max` with no panel line is single-model max. `/smart-review:max` plus `panel: on` and two model ids this harness can dispatch is the multi-model panel. `panel: per-lens` is the cheaper split.
 
 ## Evals
 

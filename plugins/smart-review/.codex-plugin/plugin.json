@@ -1,6 +1,6 @@
 {
   "name": "smart-review",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Multi-lens code review of a diff: spec-conformance, correctness, security, performance, design, tests \u2014 merged into one deduplicated, severity-ranked verdict. Sequential ensemble on Codex (no native subagents).",
   "author": {
     "name": "Lawrence Chase",

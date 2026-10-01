@@ -1,7 +1,7 @@
 {
   "name": "smart-review",
   "description": "Multi-lens code review of a diff. Six specialized lenses (spec-conformance, correctness, security, performance, design, tests) run over the changes and their findings are merged into one deduplicated, severity-ranked verdict. Fast single-pass (min) and orchestrated ensemble (max) modes.",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "author": {
     "name": "Lawrence Chase"
   },

@@ -16,7 +16,7 @@ Review PR `$ARGUMENTS` with the **smart-review** skill and publish the result ba
    Wait for an explicit answer. Never post on the assumption that running the command implied consent to publish; running the review and publishing it are two separate approvals.
 5. Once the user confirms a scope, post only that scope:
    - One summary comment with the confirmed findings, same report format: `gh pr comment $ARGUMENTS --body-file <tmpfile>`.
-   - For each confirmed P0/P1 finding with a resolvable `file:line`, also post an inline review comment: `gh api repos/{owner}/{repo}/pulls/$ARGUMENTS/comments -f body="..." -f commit_id="<head sha>" -f path="<file>" -F line=<line_end>` (get owner/repo/head sha from step 1's `gh pr view` output, extended with `headRefOid`). Never post inline comments for findings the user excluded.
+   - For each confirmed P0/P1 finding with a resolvable `file:line`, also post an inline review comment: `gh api repos/{owner}/{repo}/pulls/$ARGUMENTS/comments -f body="..." -f commit_id="<head sha>" -f path="<file>" -F line=<line_end>` (get owner/repo/head sha from step 1's `gh pr view` output, extended with `headRefOid`). Never post inline comments for findings the user excluded. A P0 tagged `unproven` is not an inline blocking comment unless the user explicitly included that finding.
 6. Do not approve, request changes, or merge the PR — this posts comments only. State the verdict in your final reply but leave the actual PR review decision to a human.
 
 This is the same lenses and merge contract as `/smart-review:review`/`min`/`max` — this command only adds the GitHub fetch/post glue, not a new review logic path.

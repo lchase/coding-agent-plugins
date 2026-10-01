@@ -99,8 +99,10 @@ directory, so no skill content is copied or forked.
 | Gemini CLI | `gemini extensions install https://github.com/lchase/skills` (reads root `gemini-extension.json`) | ✅ | ✅ sequential ensemble | via `GEMINI.md` |
 | Any AGENTS.md agent | reads root [`AGENTS.md`](AGENTS.md) | ✅ | ✅ sequential ensemble | no |
 
-`max`'s isolated parallel subagents (and optional cross-model routing) are a Claude Code
-capability. Elsewhere `max` runs the same spec-gate + six lenses + merge as a disciplined
+`max`'s isolated parallel subagents are a Claude Code capability. A model panel
+(`plugins/smart-review/skills/smart-review/references/ensemble.md`, off by default) rides
+on top when the harness can route more than one model. Otherwise max is single-model.
+Elsewhere `max` runs the same spec-gate, six lenses, and merge as a disciplined
 sequential walk. Design and internals: [`plugins/smart-review/SMART-REVIEW.md`](plugins/smart-review/SMART-REVIEW.md).
 
 **Claude Code slash commands:**

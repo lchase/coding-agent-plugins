@@ -1,0 +1,8 @@
+{
+  "id": "08-validation-false-off-by-one",
+  "title": "Plausible off-by-one that a runtime proof discards",
+  "primary_lens": "correctness",
+  "spec": "slicePage(items, page, size) returns exactly size items for a full page. Pages are 1-indexed.",
+  "files": ["after.mjs"],
+  "validation_note": "A P0 off-by-one here is a false claim about Array.prototype.slice. proof.mjs is rung 4: it imports slicePage and checks a full page. Exit 0 discards the finding. If the script cannot be run, tag unproven and do not hard-block."
+}
