@@ -2,7 +2,7 @@
   "name": "smart-review",
   "displayName": "Smart Review",
   "description": "Multi-lens code review of a diff: spec-conformance, correctness, security, performance, design, tests \u2014 merged into one deduplicated, severity-ranked verdict.",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "author": {
     "name": "Lawrence Chase"
   },

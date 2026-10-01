@@ -31,6 +31,13 @@ Every lens, in every mode, emits findings as objects of this exact shape. The me
 - **`why`** — the concrete consequence, tied to *this* code. Enough that the author can judge it without re-deriving the problem. Exploitability + impact for security; the failing input for correctness; the cost for performance.
 - **`confidence`** — the reviewer's certainty that this is real (not how bad it is — that is severity). The merge boosts confidence when lenses agree and can down-weight lone low-confidence findings.
 
+## Optional fields
+
+Lenses omit these. The orchestrator and the merge fill them in. Old findings that lack them still validate.
+
+- **`model`**: set on each finding when the max model panel ran (`ensemble.md`). The id is whatever model the harness actually dispatched. The merge copies distinct values into `agreed_by_models`.
+- **`proof`**: set during validation on P0/P1 only: `said-so`, `file-line`, `walked`, `ran`, `reproduced`, or `unproven`. A P0 hard-blocks only at `ran` or `reproduced`. See `validation.md`.
+
 ## Why one schema
 
 Structured, uniform findings are what make the merge possible: you can dedup on `(file, overlapping lines, category)`, count how many lenses independently raised the same `(category, location)`, roll `severity` up into a verdict, and sort structural findings ahead of nits — all mechanically. Free-text reviews can't be merged; they can only be concatenated, which is exactly the pile-of-noise failure mode this skill exists to avoid.

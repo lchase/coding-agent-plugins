@@ -1,0 +1,13 @@
+{
+  "must_find": [],
+  "must_not_find": [
+    {
+      "category": "off-by-one",
+      "file": "after.mjs",
+      "near_line": 6,
+      "min_severity": "P0",
+      "lens": "correctness",
+      "note": "Plausible false P0: slice(start, start+size) returns the wrong count because the end bound is exclusive or inclusive. proof.mjs imports slicePage and asserts length 10 for page 2. That run discards the finding. Without the run the claim is unproven and must not hard-block."
+    }
+  ]
+}

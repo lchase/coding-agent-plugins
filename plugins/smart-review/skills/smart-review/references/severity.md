@@ -4,7 +4,7 @@ One scale across all lenses so the merge can rank and roll up mechanically. Seve
 
 | Level | Meaning | Examples | Verdict effect |
 |---|---|---|---|
-| **P0** | Will cause incidents, data loss, or a breach. Ship-blocker. | Exploitable injection, auth bypass, data corruption, guaranteed crash on a common path, money computed wrong. | `REQUEST_CHANGES` |
+| **P0** | Will cause incidents, data loss, or a breach. Ship-blocker once proven. | Exploitable injection, auth bypass, data corruption, guaranteed crash on a common path, money computed wrong. | `REQUEST_CHANGES` when `proof` is `ran` or `reproduced`. `unproven` is reported and does not hard-block. |
 | **P1** | Wrong or unsafe under realistic conditions; fix before merge. | Unhandled error on a real path, race under normal load, missing a required piece of the spec, N+1 on a hot endpoint. | `REQUEST_CHANGES` |
 | **P2** | Real problem, not blocking. Should fix soon. | Edge case only under unusual input, a smell that will bite later, a missing test for changed behavior, an avoidable allocation off the hot path. | `APPROVE` (noted) |
 | **P3** | Nit. Style, naming, formatting, minor polish. | Naming, comment nits, import order, a slightly clearer structure with no behavior change. | `APPROVE WITH NITS` |
@@ -28,4 +28,6 @@ Computed over the merged, deduped set:
 - only **P2/P3** → `APPROVE` (`APPROVE WITH NITS` when P3s are present)
 - nothing found → `APPROVE`, stated explicitly
 
-A clean review is a valid, valuable result — state "no blocking issues found" plainly rather than manufacturing findings to look thorough.
+A P0 hard-blocks only after the validation ladder reaches `proof: ran` or `proof: reproduced` (`validation.md`). An `unproven` P0 stays in the report. It does not, alone, produce `REQUEST_CHANGES`. The reader can override that and block on it. P1 stays merge-blocking when the ladder and the lead filters (`merge-contract.md`) left it that way.
+
+A clean review is a valid, valuable result. State "no blocking issues found" plainly rather than manufacturing findings to look thorough.

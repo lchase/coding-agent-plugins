@@ -51,8 +51,10 @@ The drop in recall for each lens is its marginal contribution. Use it to prune r
 
 ## Extending the corpus
 
-Add a `corpus/<n>-<lens>-<defect>/` directory with the four files. Keep the planted defect realistic (the kind of thing that actually slips through review), keep `after.ts` short, and make `category` in `expected.json` match the vocabulary in the finding schema in the plugin (`skills/smart-review/references/finding-schema.md`). Add trap cases (`must_not_find`) that look like defects but are fine — an O(n²) over a bounded constant list, a "tainted" value that never reaches a sink — to keep precision honest.
+Add a `corpus/<n>-<lens>-<defect>/` directory with the four files. Keep the planted defect realistic (the kind of thing that actually slips through review), keep `after.ts` short, and make `category` in `expected.json` match the vocabulary in the finding schema in the plugin (`skills/smart-review/references/finding-schema.md`). Add trap cases (`must_not_find`) that look like defects but are fine: an O(n²) over a bounded constant list, a "tainted" value that never reaches a sink, to keep precision honest.
+
+`08-validation-false-off-by-one` is a trap aimed at the validation ladder, not at a lens. `after.mjs` is a correct exclusive `slice`. A plausible P0 says the page length is wrong. `proof.mjs` imports that same module and asserts a full page. Exit 0 is rung 4 (`proof: ran`) and the finding is discarded. If the script cannot be run, the claim stays `unproven` and must not hard-block. The scorer still treats a matching finding in `actual.json` as a false positive via `must_not_find`. Run the proof with `node corpus/08-validation-false-off-by-one/proof.mjs`.
 
 ## Caveats
 
-This is a starter, not a benchmark suite. Seven cases will not give you stable numbers; expand to a few dozen across categories before trusting the deltas, and re-plant defects periodically so the reviewer is not overfit to a fixed set. Findings are matched on `(category, file, line±window)`, so consistent category naming matters — that is why the schema fixes the vocabulary.
+This is a starter, not a benchmark suite. Eight cases will not give you stable numbers. Expand to a few dozen across categories before trusting the deltas, and re-plant defects periodically so the reviewer is not overfit to a fixed set. Findings are matched on `(category, file, line±window)`, so consistent category naming matters. That is why the schema fixes the vocabulary.
