@@ -1,0 +1,34 @@
+{
+  "name": "Search box filters the results list",
+  "expectBefore": "fail",
+  "viewport": { "width": 1280, "height": 720 },
+  "start": {
+    "command": "npm run dev -- --port {{PORT}}",
+    "readyPath": "/",
+    "readyTimeoutSec": 90
+  },
+  "steps": [
+    {
+      "id": "open-list",
+      "caption": "Open the results page",
+      "action": "goto",
+      "path": "/results",
+      "expect": { "visible": "[data-testid=results-list]" }
+    },
+    {
+      "id": "type-query",
+      "caption": "Type a query into the search box",
+      "action": "fill",
+      "selector": "[data-testid=search-input]",
+      "value": "example",
+      "expect": { "visible": "[data-testid=search-input]" }
+    },
+    {
+      "id": "list-filters",
+      "caption": "The list narrows to matching rows",
+      "action": "wait",
+      "ms": 500,
+      "expect": { "text": { "selector": "[data-testid=result-row]", "contains": "example" } }
+    }
+  ]
+}

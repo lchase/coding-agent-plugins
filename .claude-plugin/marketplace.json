@@ -19,6 +19,13 @@
       "description": "Turn a natural-language description of a flowchart, architecture diagram, process map, or state machine into an editable tldraw document (.tldr) plus a rendered PNG/SVG. Provides the /tldraw:diagram skill.",
       "category": "productivity",
       "keywords": ["tldraw", "diagram", "flowchart", "architecture-diagram", "tldr", "visualization"]
+    },
+    {
+      "name": "test-drive",
+      "source": "./plugins/test-drive",
+      "description": "Record a before/after test drive of a UI change: /test-drive:baseline records the app before you edit, /test-drive:compare replays the same scripted browser scenario after the change and composes a labeled side-by-side video with a deterministic pass/warn/fail verdict.",
+      "category": "development",
+      "keywords": ["test-drive", "demo", "video", "playwright", "before-after", "pr", "e2e"]
     }
   ]
 }

@@ -1,0 +1,10 @@
+{
+  "name": "test-drive",
+  "description": "Record a before/after test drive of a UI change: /test-drive:baseline records the app as it stands before you edit, /test-drive:compare replays the same scripted browser scenario after the change and composes a labeled side-by-side video with a deterministic pass/warn/fail verdict.",
+  "version": "0.2.0",
+  "author": {
+    "name": "Lawrence Chase"
+  },
+  "keywords": ["test-drive", "demo", "video", "playwright", "before-after", "pr", "e2e"],
+  "license": "MIT"
+}
