@@ -1,7 +1,7 @@
 {
   "name": "test-drive",
-  "description": "Record a before/after test drive of a UI change: /test-drive:baseline records the app as it stands before you edit, /test-drive:compare replays the same scripted browser scenario after the change and composes a labeled side-by-side video with a deterministic pass/warn/fail verdict.",
-  "version": "0.2.0",
+  "description": "Record a before/after test drive of a UI or backend API change: /test-drive:baseline records the app as it stands before you edit, /test-drive:compare replays the same scripted scenario after the change and gives a deterministic pass/warn/fail verdict, with a side-by-side video for UI or a request, response, and server-log report for API.",
+  "version": "0.3.0",
   "author": {
     "name": "Lawrence Chase"
   },

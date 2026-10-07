@@ -23,9 +23,9 @@
     {
       "name": "test-drive",
       "source": "./plugins/test-drive",
-      "description": "Record a before/after test drive of a UI change: /test-drive:baseline records the app before you edit, /test-drive:compare replays the same scripted browser scenario after the change and composes a labeled side-by-side video with a deterministic pass/warn/fail verdict.",
+      "description": "Record a before/after test drive of a UI or backend API change: /test-drive:baseline records the app before you edit, /test-drive:compare replays the same scripted scenario after the change and gives a deterministic pass/warn/fail verdict, with a side-by-side video for UI or a request, response, and server-log report for API.",
       "category": "development",
-      "keywords": ["test-drive", "demo", "video", "playwright", "before-after", "pr", "e2e"]
+      "keywords": ["test-drive", "demo", "video", "playwright", "api", "before-after", "pr", "e2e"]
     }
   ]
 }

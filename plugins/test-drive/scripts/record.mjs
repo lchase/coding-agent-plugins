@@ -11,51 +11,22 @@
 //
 // Captions and the BEFORE/AFTER badge are injected into the page, so they are burned into
 // the recording without any ffmpeg text filter.
-import { spawn, spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync, renameSync, openSync } from 'node:fs';
+import { readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
-import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { parseArgs, fail, validateScenario, waitForServer, stopServer, boot } from './lib.mjs';
 
 const ACTIONS = new Set(['goto', 'click', 'fill', 'press', 'select', 'wait', 'waitFor']);
 
-function parseArgs(argv) {
-  const args = {};
-  for (let i = 0; i < argv.length; i++) {
-    if (!argv[i].startsWith('--')) continue;
-    args[argv[i].slice(2)] = argv[i + 1];
-    i++;
-  }
-  return args;
-}
-
-function fail(msg) {
-  console.error(`record: ${msg}`);
-  process.exit(2);
-}
-
-function validateScenario(s) {
+const validateStep = (st) => {
   const errors = [];
-  if (!s || typeof s !== 'object') return ['scenario must be an object'];
-  if (!s.name) errors.push('missing "name"');
-  if (!s.start?.command) errors.push('missing "start.command"');
-  if (!Array.isArray(s.steps) || s.steps.length === 0) errors.push('"steps" must be a non-empty array');
-  const ids = new Set();
-  for (const [i, st] of (s.steps ?? []).entries()) {
-    const where = `steps[${i}]`;
-    if (!st.id) errors.push(`${where}: missing "id"`);
-    else if (ids.has(st.id)) errors.push(`${where}: duplicate id "${st.id}"`);
-    else ids.add(st.id);
-    if (!ACTIONS.has(st.action)) errors.push(`${where}: unknown action "${st.action}"`);
-    if (['click', 'fill', 'select', 'waitFor'].includes(st.action) && !st.selector) {
-      errors.push(`${where}: action "${st.action}" needs "selector"`);
-    }
-    if (!st.caption) errors.push(`${where}: missing "caption"`);
-    if (!st.expect) errors.push(`${where}: missing "expect" (every step must assert something)`);
+  if (!ACTIONS.has(st.action)) errors.push(`unknown action "${st.action}"`);
+  if (['click', 'fill', 'select', 'waitFor'].includes(st.action) && !st.selector) {
+    errors.push(`action "${st.action}" needs "selector"`);
   }
   return errors;
-}
+};
 
 async function loadPlaywright(dirs) {
   for (const dir of dirs) {
@@ -72,30 +43,6 @@ async function loadPlaywright(dirs) {
     'Playwright not found. In the repo under test run `npm i -D playwright` and ' +
       '`npx playwright install chromium`, or install it next to this script.'
   );
-}
-
-async function waitForServer(url, child, timeoutMs) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (child.exitCode !== null) return `server exited early with code ${child.exitCode}`;
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
-      if (res.status < 500) return null;
-    } catch {
-      // not up yet
-    }
-    await new Promise((r) => setTimeout(r, 750));
-  }
-  return `server not ready at ${url} after ${timeoutMs / 1000}s`;
-}
-
-function stopServer(child) {
-  if (!child || child.exitCode !== null) return;
-  try {
-    process.kill(-child.pid, 'SIGTERM');
-  } catch {
-    child.kill('SIGTERM');
-  }
 }
 
 async function check(page, expect, timeout) {
@@ -186,61 +133,19 @@ async function main() {
   const port = Number(args.port ?? 4100);
   const scenarioRaw = readFileSync(resolve(args.scenario), 'utf8');
   const scenario = JSON.parse(scenarioRaw);
-  const errors = validateScenario(scenario);
+  const errors = validateScenario(scenario, validateStep);
   if (errors.length) fail(`invalid scenario:\n  ${errors.join('\n  ')}`);
-  mkdirSync(outDir, { recursive: true });
 
   const scriptDir = dirname(fileURLToPath(import.meta.url));
   const chromium = await loadPlaywright([repoDir, scriptDir, process.cwd()]);
 
-  const sub = (s) => s.replaceAll('{{PORT}}', String(port));
-  const baseURL = `http://127.0.0.1:${port}`;
   const timeout = scenario.stepTimeoutMs ?? 8000;
   const viewport = scenario.viewport ?? { width: 1280, height: 720 };
   const side = args.side;
-  const logPath = join(outDir, `${side}.server.log`);
-
-  if (scenario.start.install) {
-    console.error(`record[${side}]: ${sub(scenario.start.install)}`);
-    const r = spawnSync(sub(scenario.start.install), { cwd: repoDir, shell: true, stdio: 'inherit' });
-    if (r.status !== 0) fail(`install command failed with status ${r.status}`);
-  }
-
-  if (scenario.start.reset) {
-    console.error(`record[${side}]: ${sub(scenario.start.reset)}`);
-    const r = spawnSync(sub(scenario.start.reset), { cwd: repoDir, shell: true, stdio: 'inherit' });
-    if (r.status !== 0) fail(`reset command failed with status ${r.status}`);
-  }
-
-  const logFd = openSync(logPath, 'w');
-  const server = spawn(sub(scenario.start.command), {
-    cwd: join(repoDir, scenario.start.cwd ?? '.'),
-    shell: true,
-    detached: true,
-    env: { ...process.env, PORT: String(port) },
-    stdio: ['ignore', logFd, logFd],
-  });
-
-  // The baseline is only a baseline if we know what code and scenario it came from.
-  // .test-drive/ is excluded so our own artifacts do not make the tree look dirty.
-  const git = (...a) => spawnSync('git', a, { cwd: repoDir, encoding: 'utf8' }).stdout?.trim() ?? '';
-  const result = {
-    side,
-    scenario: scenario.name,
-    scenarioHash: createHash('sha256').update(scenarioRaw).digest('hex'),
-    git: { sha: git('rev-parse', 'HEAD'), dirty: git('status', '--porcelain', '--', '.', ':!.test-drive') !== '' },
-    port,
-    status: 'ok',
-    failedStep: null,
-    steps: [],
-  };
+  const { server, logPath, result, baseURL, readyURL, readyMs } = boot({ scenario, scenarioRaw, repoDir, outDir, side, port });
   let browser;
   try {
-    const notReady = await waitForServer(
-      baseURL + (scenario.start.readyPath ?? '/'),
-      server,
-      (scenario.start.readyTimeoutSec ?? 90) * 1000
-    );
+    const notReady = await waitForServer(readyURL, server, readyMs);
     // throw (not fail) so the finally block still stops the server
     if (notReady) throw new Error(`${notReady} (see ${logPath})`);
 
