@@ -69,7 +69,7 @@ The tldraw skill's command also changed: `/tldraw:tldraw` → **`/tldraw:diagram
 |---|---|---|---|
 | [**smart-review**](plugins/smart-review/) | Ensemble code review: six specialized lenses over a diff, merged into one deduplicated, severity-ranked verdict | `/smart-review:{review,min,max,add-pr-review,review-pr-comments}` + auto-trigger | Claude Code, Cursor, Codex, Gemini CLI, any AGENTS.md agent |
 | [**tldraw**](plugins/tldraw/) | Natural-language description → editable tldraw document (`.tldr`) + rendered PNG/SVG | `/tldraw:diagram` + auto-trigger | Claude Code only (needs Node + `npx`) |
-| [**test-drive**](plugins/test-drive/) | Before/after video of a UI change: record the app before you edit, replay the same scripted browser scenario after, with a deterministic verdict | `/test-drive:{baseline,compare}` + auto-trigger | Claude Code only (needs Node, Playwright, ffmpeg) |
+| [**test-drive**](plugins/test-drive/) | Before/after evidence of a UI or API change: record the app before you edit, replay the same scripted scenario after, with a deterministic verdict | `/test-drive:{baseline,compare}` + auto-trigger | Claude Code only (needs Node; UI also needs Playwright and ffmpeg) |
 
 ---
 
@@ -149,12 +149,17 @@ then run `/test-drive:compare`: it replays the identical scenario with Playwrigh
 composes a labeled side-by-side MP4. The pass/warn/fail verdict comes from the scenario's
 assertions, not from reading the video.
 
+Backend changes work the same way with `"kind": "api"`: the scenario is a list of HTTP steps
+(method, path, body, expected status, JSON fields, and server-log lines to expect or avoid).
+There is nothing to screen-record, so each step captures the request, the response, and the
+server log lines it produced, and compare writes a before/after `report.md` instead of a video.
+
 ```
 /plugin install test-drive@lchase
 ```
 
-Claude Code only. Web UI changes only for now. Needs `ffmpeg` and Playwright in the repo
-under test. Only the working tree is ever run, so there is no second checkout to boot.
+Claude Code only. UI scenarios need `ffmpeg` and Playwright in the repo under test; API
+scenarios need only Node 18+. Only the working tree is ever run, so there is no second checkout to boot.
 Details: [`baseline`](plugins/test-drive/skills/baseline/SKILL.md) and
 [`compare`](plugins/test-drive/skills/compare/SKILL.md).
 
@@ -183,8 +188,8 @@ plugins/tldraw/                   # plugin 2, Claude Code only
 plugins/test-drive/               # plugin 3, Claude Code only
   .claude-plugin/plugin.json
   skills/{baseline,compare}/      # SKILL.md each
-  scripts/{record.mjs,verdict.mjs,compose.sh}   # shared by both skills
-  references/                     # scenario schema + example
+  scripts/{lib.mjs,record.mjs,record-api.mjs,verdict.mjs,compose.sh,report.mjs}   # shared by both skills
+  references/                     # UI and API scenario schemas + examples
 ```
 
 ## Developing

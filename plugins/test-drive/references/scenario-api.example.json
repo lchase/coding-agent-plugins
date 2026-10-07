@@ -1,0 +1,27 @@
+{
+  "name": "New orders start as pending",
+  "kind": "api",
+  "expectBefore": "fail",
+  "start": {
+    "command": "npm run dev -- --port {{PORT}}",
+    "reset": "npm run db:reset",
+    "readyPath": "/health"
+  },
+  "steps": [
+    {
+      "id": "create-order",
+      "caption": "Create an order",
+      "method": "POST",
+      "path": "/orders",
+      "body": { "sku": "TEST-001", "qty": 1 },
+      "expect": { "status": 201, "json": { "sku": "TEST-001" } }
+    },
+    {
+      "id": "order-pending",
+      "caption": "The order is pending and the creation is logged",
+      "method": "GET",
+      "path": "/orders/1",
+      "expect": { "status": 200, "json": { "status": "pending" }, "logAbsent": "ERROR" }
+    }
+  ]
+}

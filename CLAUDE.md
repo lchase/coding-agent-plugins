@@ -38,12 +38,15 @@ package of independently-installable plugins:
    `/test-drive:compare` replays the identical scenario after it and composes a before/after
    video plus a deterministic verdict. The "before" is never rebuilt from the merge-base, so
    only one version of the app ever boots. Shared `scripts/` at the plugin root:
-   `record.mjs` (Playwright drive and video, injects captions, stamps the result with commit
-   SHA, dirty flag, and scenario hash), `verdict.mjs` (PASS/WARN/FAIL from assertions, refuses
-   a baseline whose scenario hash differs), `compose.sh` (ffmpeg). Own version in
-   `plugins/test-drive/.claude-plugin/plugin.json`. Web UI only so far; an HTTP driver for
-   backends would slot in beside `record.mjs`. `record.mjs` has only been smoke-tested against
-   a toy server, so test changes with a real dev server.
+   `lib.mjs` (arg parsing, validation, boots the app and stamps the result with commit SHA,
+   dirty flag, and scenario hash), `record.mjs` (UI: Playwright drive and video, injects
+   captions), `record-api.mjs` (backend: HTTP steps, records request, response, and the server
+   log lines each step produced, no screen recording), `verdict.mjs` (PASS/WARN/FAIL from
+   assertions, refuses a baseline whose scenario hash differs), `compose.sh` (ffmpeg, UI) and
+   `report.mjs` (transcript report, API). A scenario's `kind` (`ui` default, or `api`) picks
+   the driver, and the same two skills handle both. Own version in
+   `plugins/test-drive/.claude-plugin/plugin.json`. Both drivers have only been smoke-tested
+   against toy servers, so test changes with a real dev server.
 
 There is no application build. smart-review is markdown plus a small TypeScript eval
 harness; tldraw is markdown plus one Node script. **Most of this file is about smart-review.**

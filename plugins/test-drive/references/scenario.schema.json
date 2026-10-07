@@ -6,6 +6,7 @@
   "additionalProperties": false,
   "properties": {
     "name": { "type": "string", "minLength": 1 },
+    "kind": { "const": "ui", "description": "Optional; omitted means ui. API scenarios use scenario-api.schema.json." },
     "expectBefore": {
       "enum": ["fail", "pass", "any"],
       "default": "any",

@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "test-drive API scenario",
+  "type": "object",
+  "required": ["name", "kind", "start", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "kind": { "const": "api" },
+    "expectBefore": { "enum": ["fail", "pass", "any"], "default": "any", "description": "What the baseline should do with this scenario. fail: feature or bugfix. pass: refactor or regression guard." },
+    "stepTimeoutMs": { "type": "integer", "minimum": 500, "default": 8000 },
+    "logSettleMs": { "type": "integer", "default": 250, "description": "Wait after each response before reading the server log lines that step produced." },
+    "start": {
+      "type": "object",
+      "required": ["command"],
+      "additionalProperties": false,
+      "properties": {
+        "install": { "type": "string" },
+        "reset": { "type": "string", "description": "Run before each side's server starts (for example reseed a dev DB), so before and after start from the same data." },
+        "command": { "type": "string", "description": "Must listen on {{PORT}}. PORT is also set in the environment. Its stdout and stderr become the per-step server log." },
+        "cwd": { "type": "string", "default": "." },
+        "readyPath": { "type": "string", "default": "/", "description": "Use a health endpoint if there is one." },
+        "readyTimeoutSec": { "type": "integer", "default": 90 }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "caption", "method", "path", "expect"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+          "caption": { "type": "string" },
+          "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+          "path": { "type": "string", "description": "Starts with /. Relative to the app root." },
+          "headers": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Synthetic credentials only. authorization, cookie, and x-api-key are redacted in the transcript." },
+          "body": { "description": "Object or array is sent as JSON; a string is sent as-is." },
+          "expect": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": false,
+            "properties": {
+              "status": { "type": "integer" },
+              "json": { "type": "object", "description": "Dot-path to expected value, for example {\"items.0.id\": 7}. Compared by JSON equality." },
+              "bodyContains": { "type": "string" },
+              "logContains": { "type": "string", "description": "Substring that must appear in the server log lines this step produced." },
+              "logAbsent": { "type": "string", "description": "Substring that must NOT appear, for example \"ERROR\"." }
+            }
+          }
+        }
+      }
+    }
+  }
+}
