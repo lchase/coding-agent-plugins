@@ -153,6 +153,8 @@ Backend changes work the same way with `"kind": "api"`: the scenario is a list o
 (method, path, body, expected status, JSON fields, and server-log lines to expect or avoid).
 There is nothing to screen-record, so each step captures the request, the response, and the
 server log lines it produced, and compare writes a before/after `report.md` instead of a video.
+Secrets are redacted from the stored transcript (best effort, extendable per scenario with
+`redact`), and the finished report is scanned and flagged if anything still looks secret.
 
 ```
 /plugin install test-drive@lchase
@@ -188,7 +190,7 @@ plugins/tldraw/                   # plugin 2, Claude Code only
 plugins/test-drive/               # plugin 3, Claude Code only
   .claude-plugin/plugin.json
   skills/{baseline,compare}/      # SKILL.md each
-  scripts/{lib.mjs,record.mjs,record-api.mjs,verdict.mjs,compose.sh,report.mjs}   # shared by both skills
+  scripts/{lib.mjs,record.mjs,record-api.mjs,redact.mjs,verdict.mjs,compose.sh,report.mjs}   # shared by both skills
   references/                     # UI and API scenario schemas + examples
 ```
 

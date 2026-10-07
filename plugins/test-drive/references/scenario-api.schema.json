@@ -9,6 +9,15 @@
     "kind": { "const": "api" },
     "expectBefore": { "enum": ["fail", "pass", "any"], "default": "any", "description": "What the baseline should do with this scenario. fail: feature or bugfix. pass: refactor or regression guard." },
     "stepTimeoutMs": { "type": "integer", "minimum": 500, "default": 8000 },
+    "redact": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Extra scrubbing for the stored transcript, on top of the built-in token, secret, password, cookie, and authorization handling.",
+      "properties": {
+        "keys": { "type": "array", "items": { "type": "string" }, "description": "JSON keys and header names whose values are replaced with [redacted], matched as case-insensitive substrings." },
+        "patterns": { "type": "array", "items": { "type": "string" }, "description": "Regular expressions; every match in bodies, headers, paths, and logs is replaced with [redacted]." }
+      }
+    },
     "logSettleMs": { "type": "integer", "default": 250, "description": "Wait after each response before reading the server log lines that step produced." },
     "start": {
       "type": "object",
@@ -35,7 +44,7 @@
           "caption": { "type": "string" },
           "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
           "path": { "type": "string", "description": "Starts with /. Relative to the app root." },
-          "headers": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Synthetic credentials only. authorization, cookie, and x-api-key are redacted in the transcript." },
+          "headers": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Synthetic credentials only. Header values whose name looks sensitive are redacted in the transcript." },
           "body": { "description": "Object or array is sent as JSON; a string is sent as-is." },
           "expect": {
             "type": "object",

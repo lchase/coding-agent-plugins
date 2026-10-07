@@ -41,7 +41,7 @@ function block(step) {
   return '```\n' + lines.join('\n') + '\n```';
 }
 
-const out = [summary.trimEnd(), '', '## Transcript', ''];
+const out = ['__BANNER__', summary.trimEnd(), '', '## Transcript', ''];
 for (const step of after.steps.length >= (before?.steps.length ?? 0) ? after.steps : before.steps) {
   const b = before?.steps.find((s) => s.id === step.id);
   const a = after.steps.find((s) => s.id === step.id);
@@ -49,5 +49,23 @@ for (const step of after.steps.length >= (before?.steps.length ?? 0) ? after.ste
   out.push(`<details><summary>Before: ${b ? b.status : 'n/a'}</summary>`, '', block(b), '', '</details>', '');
   out.push(`<details open><summary>After: ${a ? a.status : 'not run'}</summary>`, '', block(a), '', '</details>', '');
 }
-writeFileSync(join(dir, 'report.md'), out.join('\n'));
+// Redaction is best effort. Scan the finished report and say so if anything still looks secret.
+// Only line numbers are reported, never the matched text.
+const SUSPECT = [
+  [/\beyJ[\w-]{8,}\.[\w-]{8,}\.[\w-]{8,}/, 'JWT'],
+  [/\bBearer\s+(?!\[redacted\])\S{8,}/i, 'bearer token'],
+  [/\bAKIA[0-9A-Z]{16}\b/, 'AWS access key id'],
+  [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, 'private key'],
+  [/[A-Za-z0-9+/_]{32,}={0,2}/, 'long token-like string (may be a hash)'],
+];
+const body = out.join('\n');
+const hits = [];
+body.split('\n').forEach((line, i) => {
+  for (const [re, what] of SUSPECT) if (re.test(line)) hits.push(`line ${i + 1}: ${what}`);
+});
+const banner = hits.length
+  ? `> **WARNING: this report may still contain secrets.** Review before sharing.\n> ${hits.slice(0, 10).join('; ')}${hits.length > 10 ? `; and ${hits.length - 10} more` : ''}\n`
+  : '';
+writeFileSync(join(dir, 'report.md'), body.replace('__BANNER__', banner));
+if (hits.length) console.error(`report: WARNING possible secrets in report.md (${hits.length} match${hits.length > 1 ? 'es' : ''}), review before sharing`);
 console.log(join(dir, 'report.md'));

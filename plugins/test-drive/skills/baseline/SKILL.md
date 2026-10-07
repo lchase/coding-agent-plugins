@@ -69,8 +69,11 @@ for API.
   element that does not exist yet, decide its `data-testid` now and tell the user to add
   exactly that in the change. The scenario is locked after this step.
 - **3 to 6 steps.** Synthetic data only; recordings capture whatever is on screen or in the
-  transcript. Use obviously fake values and tokens. `authorization`, `cookie`, and
-  `x-api-key` headers are redacted in the transcript, but other fields are not.
+  transcript. Use obviously fake values and tokens. The stored transcript redacts values for
+  keys and headers that look sensitive (token, secret, password, cookie, authorization, api
+  key and similar) and Bearer or JWT strings in bodies, paths, and logs. Redaction is best
+  effort: add `redact.keys` or `redact.patterns` to the scenario for anything app-specific
+  (customer ids, emails). `<side>.server.log` is the RAW server output and stays local.
 - If the steps mutate state (every API write does), set `start.reset` so before and after
   start from the same data.
 - For API scenarios, point `start.command` at a local or sandbox dependency set, never shared
