@@ -51,7 +51,11 @@ node "$TD/report.mjs" --dir .test-drive/<slug>                                  
 
 For UI, add `sequential` as a fourth `compose.sh` argument for before-then-after instead of
 side by side. For API, `report.mjs` writes `report.md`: the verdict summary followed by the
-before and after request, response, and server log per step. Verdict exit codes: 0 PASS, 1 FAIL (the scenario fails after the change), 2 error (for
+before and after request, response, and server log per step. Secrets are redacted on the way
+in and the finished report is scanned again. If `report.mjs` prints a WARNING (and `report.md`
+opens with a warning banner), tell the user the line numbers, do not offer to post it, and
+suggest adding `redact.keys` or `redact.patterns` and re-running compare. A hit can be a
+false positive such as a hash. Verdict exit codes: 0 PASS, 1 FAIL (the scenario fails after the change), 2 error (for
 example the scenario changed since the baseline), 3 WARN (the baseline did not behave as
 `expectBefore` said, the baseline was dirty, or the baseline commit is not an ancestor of
 HEAD).
@@ -75,6 +79,7 @@ an MP4 is attached by hand. Review the video or transcript for secrets before sh
 
 ## What to avoid
 
+- Pasting `<side>.server.log` or `result.json` into a PR or chat. The log is raw.
 - Reading the video and declaring success. The assertions decide.
 - Widening the scenario to make a WARN go away. A WARN means the scenario may be testing the
   wrong thing; tell the user.

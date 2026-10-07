@@ -5,15 +5,16 @@
 //
 //   node record-api.mjs --scenario s.json --repo <dir> --side before|after --out <dir> [--port 4100]
 //
-// Writes <out>/<side>.result.json (steps carry the transcript) and <out>/<side>.server.log.
+// Writes <out>/<side>.result.json (steps carry the redacted transcript) and <out>/<side>.server.log
+// (RAW server output, stays local, never put it in a PR).
 // Exit codes: 0 a result was produced (the scenario may still have failed), 2 infrastructure
 // failure (bad scenario, server never became ready).
 import { readFileSync, writeFileSync, statSync, openSync, readSync, closeSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { parseArgs, fail, validateScenario, waitForServer, stopServer, boot } from './lib.mjs';
+import { makeRedactor } from './redact.mjs';
 
 const METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
-const SECRET_HEADER = /^(authorization|cookie|x-api-key)$/i;
 const MAX_STORED = 4000;
 
 const validateStep = (st) => {
@@ -24,7 +25,6 @@ const validateStep = (st) => {
 };
 
 const trunc = (s) => (s.length > MAX_STORED ? `${s.slice(0, MAX_STORED)}\n...[truncated ${s.length - MAX_STORED} chars]` : s);
-const redact = (h) => Object.fromEntries(Object.entries(h).map(([k, v]) => [k, SECRET_HEADER.test(k) ? '[redacted]' : v]));
 
 function readFrom(path, offset) {
   const size = statSync(path).size;
@@ -57,7 +57,7 @@ function check(expect, { status, text, logs }) {
   if (expect.logAbsent && logs.includes(expect.logAbsent)) throw new Error(`server log contains "${expect.logAbsent}"`);
 }
 
-async function runStep(step, baseURL, timeout, settleMs, logPath) {
+async function runStep(step, baseURL, timeout, settleMs, logPath, redact) {
   const offset = statSync(logPath).size;
   const headers = { ...step.headers };
   let body;
@@ -65,7 +65,14 @@ async function runStep(step, baseURL, timeout, settleMs, logPath) {
     body = typeof step.body === 'string' ? step.body : JSON.stringify(step.body);
     if (!Object.keys(headers).some((k) => k.toLowerCase() === 'content-type')) headers['content-type'] = 'application/json';
   }
-  const record = { request: { method: step.method, path: step.path, headers: redact(headers), body: step.body } };
+  const record = {
+    request: {
+      method: step.method,
+      path: redact.text(step.path),
+      headers: redact.headers(headers),
+      body: typeof step.body === 'string' ? redact.text(step.body) : redact.deep(step.body),
+    },
+  };
   const t0 = Date.now();
   const res = await fetch(new URL(step.path, baseURL), {
     method: step.method,
@@ -79,8 +86,9 @@ async function runStep(step, baseURL, timeout, settleMs, logPath) {
   // Give the server a moment to flush the log lines this request caused.
   await new Promise((r) => setTimeout(r, settleMs));
   const logs = readFrom(logPath, offset);
-  record.response = { status: res.status, contentType: res.headers.get('content-type'), body: trunc(text) };
-  record.logs = trunc(logs);
+  // Redact the whole value first, then truncate: cutting JSON mid-way would break the parse.
+  record.response = { status: res.status, contentType: res.headers.get('content-type'), body: trunc(redact.body(text)) };
+  record.logs = trunc(redact.text(logs));
   return { record, observed: { status: res.status, text, logs } };
 }
 
@@ -101,6 +109,12 @@ async function main() {
   const timeout = scenario.stepTimeoutMs ?? 8000;
   const settleMs = scenario.logSettleMs ?? 250;
   const side = args.side;
+  let redact;
+  try {
+    redact = makeRedactor(scenario.redact);
+  } catch (err) {
+    fail(`invalid "redact" in scenario: ${err.message}`);
+  }
   const { server, logPath, result, baseURL, readyURL, readyMs } = boot({ scenario, scenarioRaw, repoDir, outDir, side, port });
 
   try {
@@ -113,14 +127,15 @@ async function main() {
       const entry = { id: step.id, caption: step.caption };
       let observed;
       try {
-        const r = await runStep(step, baseURL, timeout, settleMs, logPath);
+        const r = await runStep(step, baseURL, timeout, settleMs, logPath, redact);
         Object.assign(entry, r.record);
         observed = r.observed;
         check(step.expect, observed);
         entry.status = 'ok';
       } catch (err) {
         entry.status = 'failed';
-        entry.error = String(err?.message ?? err).split('\n')[0];
+        // the message can quote a response value, so redact it too
+        entry.error = redact.text(String(err?.message ?? err).split('\n')[0]);
         result.status = 'failed';
         result.failedStep = step.id;
       }

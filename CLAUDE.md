@@ -41,7 +41,8 @@ package of independently-installable plugins:
    `lib.mjs` (arg parsing, validation, boots the app and stamps the result with commit SHA,
    dirty flag, and scenario hash), `record.mjs` (UI: Playwright drive and video, injects
    captions), `record-api.mjs` (backend: HTTP steps, records request, response, and the server
-   log lines each step produced, no screen recording), `verdict.mjs` (PASS/WARN/FAIL from
+   log lines each step produced, no screen recording; `redact.mjs` scrubs secrets from what it
+   stores and `report.mjs` re-scans the final report), `verdict.mjs` (PASS/WARN/FAIL from
    assertions, refuses a baseline whose scenario hash differs), `compose.sh` (ffmpeg, UI) and
    `report.mjs` (transcript report, API). A scenario's `kind` (`ui` default, or `api`) picks
    the driver, and the same two skills handle both. Own version in
