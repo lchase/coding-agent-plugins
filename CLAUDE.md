@@ -59,6 +59,7 @@ Validate before pushing (no CI configured, so do this manually):
 ```bash
 claude plugin validate .                                 # marketplace + both plugins
 ./plugins/smart-review/scripts/validate-adapters.sh       # smart-review manifests: JSON, version match, resolvable paths, agent-lens sync
+node plugins/test-drive/scripts/redact.test.mjs           # test-drive redactor regression check
 ```
 
 Bump smart-review's version across all its manifests at once (does not touch tldraw):

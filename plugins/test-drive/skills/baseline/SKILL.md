@@ -73,7 +73,7 @@ for API.
   keys and headers that look sensitive (token, secret, password, cookie, authorization, api
   key and similar) and Bearer or JWT strings in bodies, paths, and logs. Redaction is best
   effort: add `redact.keys` or `redact.patterns` to the scenario for anything app-specific
-  (customer ids, emails). `<side>.server.log` is the RAW server output and stays local.
+  (customer ids, emails). Known gap: an unquoted `key=two words` leaves the second word. `<side>.server.log` is the RAW server output and stays local.
 - If the steps mutate state (every API write does), set `start.reset` so before and after
   start from the same data.
 - For API scenarios, point `start.command` at a local or sandbox dependency set, never shared
