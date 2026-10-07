@@ -7,6 +7,7 @@ and other coding agents.
 /plugin marketplace add lchase/skills
 /plugin install smart-review@lchase
 /plugin install tldraw@lchase
+/plugin install test-drive@lchase
 ```
 
 Each plugin is independent; install only what you want. `@lchase` is the marketplace name
@@ -68,6 +69,7 @@ The tldraw skill's command also changed: `/tldraw:tldraw` → **`/tldraw:diagram
 |---|---|---|---|
 | [**smart-review**](plugins/smart-review/) | Ensemble code review: six specialized lenses over a diff, merged into one deduplicated, severity-ranked verdict | `/smart-review:{review,min,max,add-pr-review,review-pr-comments}` + auto-trigger | Claude Code, Cursor, Codex, Gemini CLI, any AGENTS.md agent |
 | [**tldraw**](plugins/tldraw/) | Natural-language description → editable tldraw document (`.tldr`) + rendered PNG/SVG | `/tldraw:diagram` + auto-trigger | Claude Code only (needs Node + `npx`) |
+| [**test-drive**](plugins/test-drive/) | Before/after video of a UI change: record the app before you edit, replay the same scripted browser scenario after, with a deterministic verdict | `/test-drive:{baseline,compare}` + auto-trigger | Claude Code only (needs Node, Playwright, ffmpeg) |
 
 ---
 
@@ -138,10 +140,30 @@ Claude Code only. Skill: `/tldraw:diagram` (also auto-triggers on "draw this dia
 
 ---
 
+## test-drive
+
+A test drive is an e2e test that happens to produce video, and the "before" is part of the
+process rather than something reconstructed later. Run `/test-drive:baseline` before you
+edit: it writes a short browser scenario and records the app as it stands. Make the change,
+then run `/test-drive:compare`: it replays the identical scenario with Playwright and
+composes a labeled side-by-side MP4. The pass/warn/fail verdict comes from the scenario's
+assertions, not from reading the video.
+
+```
+/plugin install test-drive@lchase
+```
+
+Claude Code only. Web UI changes only for now. Needs `ffmpeg` and Playwright in the repo
+under test. Only the working tree is ever run, so there is no second checkout to boot.
+Details: [`baseline`](plugins/test-drive/skills/baseline/SKILL.md) and
+[`compare`](plugins/test-drive/skills/compare/SKILL.md).
+
+---
+
 ## Repo layout
 
 ```
-.claude-plugin/marketplace.json   # the "lchase" marketplace: 2 plugin entries
+.claude-plugin/marketplace.json   # the "lchase" marketplace: 3 plugin entries
 AGENTS.md                         # repo-level agent pointer (→ smart-review)
 gemini-extension.json + GEMINI.md # Gemini CLI installs the repo as an extension (→ smart-review)
 
@@ -157,12 +179,18 @@ plugins/smart-review/             # plugin 1, multi-harness code review
 plugins/tldraw/                   # plugin 2, Claude Code only
   .claude-plugin/plugin.json
   skills/diagram/                 # SKILL.md + scripts/build-tldr.mjs + references/
+
+plugins/test-drive/               # plugin 3, Claude Code only
+  .claude-plugin/plugin.json
+  skills/{baseline,compare}/      # SKILL.md each
+  scripts/{record.mjs,verdict.mjs,compose.sh}   # shared by both skills
+  references/                     # scenario schema + example
 ```
 
 ## Developing
 
 ```
-claude plugin validate .                                # marketplace + both plugins
+claude plugin validate .                                # marketplace + all plugins
 ./plugins/smart-review/scripts/validate-adapters.sh      # smart-review's per-harness manifests
 ```
 

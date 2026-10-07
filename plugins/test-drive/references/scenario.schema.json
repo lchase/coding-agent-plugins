@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "test-drive scenario",
+  "type": "object",
+  "required": ["name", "start", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "expectBefore": {
+      "enum": ["fail", "pass", "any"],
+      "default": "any",
+      "description": "What the baseline should do with this scenario. fail: feature or bugfix. pass: refactor or regression guard."
+    },
+    "viewport": {
+      "type": "object",
+      "properties": { "width": { "type": "integer" }, "height": { "type": "integer" } },
+      "required": ["width", "height"],
+      "additionalProperties": false
+    },
+    "stepTimeoutMs": { "type": "integer", "minimum": 500, "default": 8000 },
+    "start": {
+      "type": "object",
+      "required": ["command"],
+      "additionalProperties": false,
+      "properties": {
+        "install": { "type": "string", "description": "Optional, run once per checkout before start. Use only if dependencies are not already present." },
+        "reset": { "type": "string", "description": "Optional, run before each side's server starts (for example reseed a dev DB). Use it when steps mutate state, so before and after start from the same data." },
+        "command": { "type": "string", "description": "Must listen on {{PORT}}. PORT is also set in the environment." },
+        "cwd": { "type": "string", "default": "." },
+        "readyPath": { "type": "string", "default": "/" },
+        "readyTimeoutSec": { "type": "integer", "default": 90 }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "action", "caption", "expect"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+          "caption": { "type": "string", "description": "Shown on screen. Plain language, what the viewer should notice." },
+          "action": { "enum": ["goto", "click", "fill", "press", "select", "wait", "waitFor"] },
+          "path": { "type": "string", "description": "goto only. Path relative to the app root." },
+          "selector": { "type": "string", "description": "Prefer [data-testid=...] or role-based selectors over CSS classes." },
+          "value": { "type": "string" },
+          "ms": { "type": "integer", "description": "wait only." },
+          "holdMs": { "type": "integer", "default": 1200, "description": "Pause after the step so the viewer can read the caption." },
+          "expect": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": false,
+            "properties": {
+              "visible": { "type": "string", "description": "Selector that must become visible." },
+              "absent": { "type": "string", "description": "Selector that must be hidden or gone." },
+              "text": {
+                "type": "object",
+                "required": ["selector", "contains"],
+                "additionalProperties": false,
+                "properties": { "selector": { "type": "string" }, "contains": { "type": "string" } }
+              },
+              "url": { "type": "string", "description": "Substring the URL must contain." }
+            }
+          }
+        }
+      }
+    }
+  }
+}

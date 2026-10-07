@@ -33,6 +33,18 @@ package of independently-installable plugins:
    for images), and `references/tldr-format.md`. It carries its own version in
    `plugins/tldraw/.claude-plugin/plugin.json`, independent of smart-review.
 
+3. **test-drive** (`plugins/test-drive/`) is Claude Code only. Two skills form one process:
+   `/test-drive:baseline` records the UI as it stands BEFORE the change is made, and
+   `/test-drive:compare` replays the identical scenario after it and composes a before/after
+   video plus a deterministic verdict. The "before" is never rebuilt from the merge-base, so
+   only one version of the app ever boots. Shared `scripts/` at the plugin root:
+   `record.mjs` (Playwright drive and video, injects captions, stamps the result with commit
+   SHA, dirty flag, and scenario hash), `verdict.mjs` (PASS/WARN/FAIL from assertions, refuses
+   a baseline whose scenario hash differs), `compose.sh` (ffmpeg). Own version in
+   `plugins/test-drive/.claude-plugin/plugin.json`. Web UI only so far; an HTTP driver for
+   backends would slot in beside `record.mjs`. `record.mjs` has only been smoke-tested against
+   a toy server, so test changes with a real dev server.
+
 There is no application build. smart-review is markdown plus a small TypeScript eval
 harness; tldraw is markdown plus one Node script. **Most of this file is about smart-review.**
 
