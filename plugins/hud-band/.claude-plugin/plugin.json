@@ -1,7 +1,7 @@
 {
   "name": "hud-band",
   "version": "0.1.0",
-  "description": "HUD band below the prompt: model, git branch, context bar, cache countdown, rate limits, cost, tool activity",
+  "description": "HUD band above the prompt: model, git branch, context bar, cache countdown, rate limits, cost, tool activity",
   "types": "./types/index.d.ts",
   "author": {
     "name": "Lawrence Chase"

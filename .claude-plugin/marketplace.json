@@ -30,7 +30,7 @@
     {
       "name": "hud-band",
       "source": "./plugins/hud-band",
-      "description": "Claude Code mod: a HUD band below the prompt showing the model, git branch, context progress bar, prompt cache countdown, plan rate limits, session cost, and tool activity.",
+      "description": "Claude Code mod: a HUD band above the prompt showing the model, git branch, context progress bar, prompt cache countdown, plan rate limits, session cost, and tool activity.",
       "category": "productivity",
       "keywords": ["hud", "statusline", "mod", "context", "cache", "git"]
     }

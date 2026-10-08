@@ -71,7 +71,7 @@ The tldraw skill's command also changed: `/tldraw:tldraw` → **`/tldraw:diagram
 | [**smart-review**](plugins/smart-review/) | Ensemble code review: six specialized lenses over a diff, merged into one deduplicated, severity-ranked verdict | `/smart-review:{review,min,max,add-pr-review,review-pr-comments}` + auto-trigger | Claude Code, Cursor, Codex, Gemini CLI, any AGENTS.md agent |
 | [**tldraw**](plugins/tldraw/) | Natural-language description → editable tldraw document (`.tldr`) + rendered PNG/SVG | `/tldraw:diagram` + auto-trigger | Claude Code only (needs Node + `npx`) |
 | [**test-drive**](plugins/test-drive/) | Before/after evidence of a UI or API change: record the app before you edit, replay the same scripted scenario after, with a deterministic verdict | `/test-drive:{baseline,compare}` + auto-trigger | Claude Code only (needs Node; UI also needs Playwright and ffmpeg) |
-| [**hud-band**](plugins/hud-band/) | Mod: a status band below the prompt with model, branch, context bar, cache countdown, rate limits, cost, tool activity, and a session handoff button | `/hud-band:session-handoff` | Claude Code only (terminal and desktop) |
+| [**hud-band**](plugins/hud-band/) | Mod: a status band above the prompt with model, branch, context bar, cache countdown, rate limits, cost, tool activity, and a session handoff button | `/hud-band:session-handoff` | Claude Code only (terminal and desktop) |
 
 ---
 
@@ -171,7 +171,7 @@ Details: [`baseline`](plugins/test-drive/skills/baseline/SKILL.md) and
 
 ## hud-band
 
-A Claude Code mod that draws one status row below the prompt: model and effort, git branch,
+A Claude Code mod that draws one status row above the prompt: model and effort, git branch,
 context-window bar, prompt-cache countdown, plan rate limits, session token totals, cost, and
 the tool currently running. When context passes 60% it adds a `handoff` button that runs the
 `session-handoff` skill, saves the result under `~/.claude/mods-data/hud-band/handoffs/`, and
@@ -181,8 +181,7 @@ offers `clear and continue` to start a fresh chat from it.
 /plugin install hud-band@lchase
 ```
 
-Claude Code only, terminal and desktop. It takes over the dim hint line under the prompt
-(`? for shortcuts`), so that hint is not shown while the band is on. Source:
+Claude Code only, terminal and desktop. Source:
 [`plugins/hud-band/hooks/register.tsx`](plugins/hud-band/hooks/register.tsx).
 
 ---
@@ -215,7 +214,7 @@ plugins/test-drive/               # plugin 3, Claude Code only
 
 plugins/hud-band/                 # plugin 4, Claude Code only (a mod, not a skill)
   .claude-plugin/plugin.json
-  hooks/register.tsx              # the band, drawn on the PromptHint slot
+  hooks/register.tsx              # the band, drawn on the AbovePrompt slot
   skills/session-handoff/         # SKILL.md the handoff button runs
 ```
 

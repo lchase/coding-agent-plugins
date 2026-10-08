@@ -12,6 +12,7 @@ const tokens = atom({ plugin: 'hud-band', key: 'tokens' } as const, { inp: 0, ou
 const hud = atom({ plugin: 'hud-band', key: 'hud' } as const, { tool: null, tools: 0 } as Hud)
 
 const GREY = '#c0c0c0'
+const RULE = '#505050'
 const MIN = 60000
 // ponytail: assumes the 1h cache TTL; cache-keeper's 5-minute TTL detection not ported
 const TTL_MIN = 60
@@ -218,7 +219,7 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const { Box, Text, Button } = $.ui.resolve(e)
     try {
     const st = await read($, hud)
@@ -278,8 +279,7 @@ export const register: Register = on => {
     ].filter(Boolean)
     return (
       <Box flexDirection="column">
-        {/* the engine pins its mode label to the first row, so the hint goes first and the band under it */}
-        {e.props.hint ? <Text dimColor>{e.props.hint}</Text> : <Text> </Text>}
+        <Text color={RULE}>{'─'.repeat(e.props.bodyColumns)}</Text>
         <Box flexDirection="row" justifyContent="space-between" width="100%" columnGap={2}>
           {segments}
           <Box flexDirection="row" columnGap={2}>{buttons}</Box>
