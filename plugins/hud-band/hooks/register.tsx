@@ -175,6 +175,13 @@ export const register: Register = on => {
     return next(e)
   })
 
+  // redraw once /model has actually run, not before (the event fires as the command starts)
+  on('command.run', { command: 'model' }, async ($, e, next) => {
+    const result = await next(e)
+    $.ui.invalidate('ui.render')
+    return result
+  })
+
   on('classic.SessionStart', { source: ['clear', 'resume', 'fork'] }, async ($, e, next) => {
     await update($, activity, () => 0)
     seedTokens($).catch(() => {})
