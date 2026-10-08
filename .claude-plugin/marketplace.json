@@ -26,6 +26,13 @@
       "description": "Record a before/after test drive of a UI or backend API change: /test-drive:baseline records the app before you edit, /test-drive:compare replays the same scripted scenario after the change and gives a deterministic pass/warn/fail verdict, with a side-by-side video for UI or a request, response, and server-log report for API.",
       "category": "development",
       "keywords": ["test-drive", "demo", "video", "playwright", "api", "before-after", "pr", "e2e"]
+    },
+    {
+      "name": "hud-band",
+      "source": "./plugins/hud-band",
+      "description": "Claude Code mod: a HUD band below the prompt showing the model, git branch, context progress bar, prompt cache countdown, plan rate limits, session cost, and tool activity.",
+      "category": "productivity",
+      "keywords": ["hud", "statusline", "mod", "context", "cache", "git"]
     }
   ]
 }
