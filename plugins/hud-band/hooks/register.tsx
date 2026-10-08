@@ -278,12 +278,12 @@ export const register: Register = on => {
     ].filter(Boolean)
     return (
       <Box flexDirection="column">
+        {/* the engine pins its mode label to the first row, so the hint goes first and the band under it */}
+        {e.props.hint ? <Text dimColor>{e.props.hint}</Text> : <Text> </Text>}
         <Box flexDirection="row" justifyContent="space-between" width="100%" columnGap={2}>
           {segments}
           <Box flexDirection="row" columnGap={2}>{buttons}</Box>
         </Box>
-        {/* the engine's own hint line (mode, shortcuts) redrawn as plain text on the last row */}
-        {e.props.hint && <Text dimColor>{e.props.hint}</Text>}
       </Box>
     )
     } catch (err) {
