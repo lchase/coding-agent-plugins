@@ -234,7 +234,8 @@ export const register: Register = on => {
     if ((await $.clock.now()) - branch.at > 5000) {
       const run = (argv: string[]) => $.process.run(argv).then(r => (r.exitCode === 0 ? r.stdout.trim() : ''), () => '')
       const name = (await run(['git', 'branch', '--show-current'])) || (await run(['git', 'rev-parse', '--short', 'HEAD']))
-      branch = { at: await $.clock.now(), name }
+      // a transient git failure (lock, timeout) returns '': keep the last good name instead of blanking the segment
+      branch = { at: await $.clock.now(), name: name || branch.name }
     }
     const now = await $.clock.now()
     const lastActivity = await read($, activity)
