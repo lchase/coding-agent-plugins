@@ -282,6 +282,8 @@ export const register: Register = on => {
           {segments}
           <Box flexDirection="row" columnGap={2}>{buttons}</Box>
         </Box>
+        {/* the engine's own hint line (mode, shortcuts) redrawn as plain text on the last row */}
+        {e.props.hint && <Text dimColor>{e.props.hint}</Text>}
       </Box>
     )
     } catch (err) {
