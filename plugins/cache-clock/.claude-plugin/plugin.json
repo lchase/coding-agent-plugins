@@ -1,6 +1,6 @@
 {
   "name": "cache-clock",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": { "name": "Lawrence Chase" },
   "description": "Band line showing whether Claude's prompt cache is still warm, with countdown, reuse, and estimated cold-rewrite cost",
   "types": "./types/index.d.ts",
