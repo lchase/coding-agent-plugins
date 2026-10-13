@@ -11,6 +11,8 @@ const FRESH_MS = 10 * 60 * 1000
 const FILE = 'HANDOFF.md'
 
 const CHIP_BG = '#3b2160'
+const BRANCH_COLOR = '#b794f4'
+const BRANCH_MAX = 24
 const CHIP_FG = '#b8aece'
 const GREEN = '#4ade80'
 const AMBER = '#fbbf24'
@@ -70,6 +72,21 @@ async function load($: EngineInterface): Promise<Settings> {
 async function save($: EngineInterface, s: Settings) {
   await $.store.set('settings', s)
   $.ui.invalidate('ui.render')
+}
+
+export const branchFromHead = (head: string): string =>
+  head.match(/^ref: refs\/heads\/(.+)$/m)?.[1]?.trim() ?? head.trim().slice(0, 7)
+
+// ponytail: reads .git/HEAD from the cwd up (5 levels), no git subprocess. Worktrees follow the .git pointer file.
+async function readBranch($: EngineInterface): Promise<string> {
+  let dir = '.'
+  for (let i = 0; i < 5; i++, dir += '/..') {
+    const head = await $.fs.read(`${dir}/.git/HEAD`).catch(() => '')
+    if (head) return branchFromHead(head)
+    const ptr = ((await $.fs.read(`${dir}/.git`).catch(() => '')) as string).match(/^gitdir: (.+)$/m)?.[1]
+    if (ptr) return branchFromHead(await $.fs.read(`${ptr.trim()}/HEAD`).catch(() => ''))
+  }
+  return ''
 }
 
 async function mtimeOf($: EngineInterface): Promise<number | undefined> {
@@ -314,11 +331,16 @@ export const register: Register = on => {
       )
     }
 
+    const branch = await readBranch($)
+    const isDefault = branch === 'main' || branch === 'master'
+    const shown = branch.length > BRANCH_MAX ? `${branch.slice(0, BRANCH_MAX - 1)}…` : branch
+
     const line = (
       <Box>
         {chip}
         <Text> </Text>
         {body}
+        {branch !== '' && (isDefault ? <Text dimColor>{` ⎇ ${shown}`}</Text> : <Text color={BRANCH_COLOR}>{` ⎇ ${shown}`}</Text>)}
       </Box>
     )
 
