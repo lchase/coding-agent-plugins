@@ -28,13 +28,6 @@
       "keywords": ["test-drive", "demo", "video", "playwright", "api", "before-after", "pr", "e2e"]
     },
     {
-      "name": "hud-band",
-      "source": "./plugins/hud-band",
-      "description": "Claude Code mod: a HUD band above the prompt showing the model, git branch, context progress bar, prompt cache countdown, plan rate limits, session cost, and tool activity.",
-      "category": "productivity",
-      "keywords": ["hud", "statusline", "mod", "context", "cache", "git"]
-    },
-    {
       "name": "cache-clock",
       "source": "./plugins/cache-clock",
       "description": "Claude Code mod: a band line showing whether the prompt cache is still warm, with countdown, reuse percentage, cached tokens, and estimated cold-rewrite cost, plus a Compact button and /cache-clock command.",
