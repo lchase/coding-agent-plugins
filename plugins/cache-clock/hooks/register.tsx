@@ -11,8 +11,8 @@ const lastStep = atom({ plugin: 'cache-clock', key: 'last' } as const, null as L
 const totals = atom({ plugin: 'cache-clock', key: 'totals' } as const, { reads: 0, writes: 0, fresh: 0, saved: 0, unpricedReads: 0 } as Totals)
 const isOn = atom({ plugin: 'cache-clock', key: 'isOn' } as const, true)
 
-const CYAN = '#22d3ee'
-const INK = '#0b0b0f'
+const CHIP_BG = '#6d28d9'
+const CHIP_FG = '#f5f3ff'
 const GREEN = '#22c55e'
 const AMBER = '#f59e0b'
 const RED = '#ef4444'
@@ -143,7 +143,7 @@ export const register: Register = (on, options) => {
 
     const line = (
       <Box>
-        <Text bold color={INK} backgroundColor={CYAN}>
+        <Text bold color={CHIP_FG} backgroundColor={CHIP_BG}>
           {'  ● CACHE  '}
         </Text>
         <Text bold color={color}>

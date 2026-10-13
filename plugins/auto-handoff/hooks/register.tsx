@@ -10,8 +10,8 @@ const DEFAULTS: Settings = { on: true, mode: 'ask', threshold: 80, hidden: false
 const FRESH_MS = 10 * 60 * 1000
 const FILE = 'HANDOFF.md'
 
-const VIOLET = '#a78bfa'
-const INK = '#0b0b0f'
+const CHIP_BG = '#6d28d9'
+const CHIP_FG = '#f5f3ff'
 const GREEN = '#4ade80'
 const AMBER = '#fbbf24'
 const RED = '#f87171'
@@ -269,7 +269,7 @@ export const register: Register = on => {
     const now = await $.clock.now()
 
     const chip = (
-      <Text bold color={INK} backgroundColor={VIOLET}>
+      <Text bold color={CHIP_FG} backgroundColor={CHIP_BG}>
         {' ⇄ HANDOFF '}
       </Text>
     )

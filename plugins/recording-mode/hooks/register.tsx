@@ -168,8 +168,8 @@ export const register: Register = on => {
 
     const { Box, Text } = $.ui.resolve(e)
     const chip = (
-      <Text bold color="white" backgroundColor="red">
-        {cfg.isStrict ? ' ● REC STRICT ' : ' ● REC '}
+      <Text bold color="#f5f3ff" backgroundColor="#6d28d9">
+        {cfg.isStrict ? ' ● STRICT  ' : '  ● REC    '}
       </Text>
     )
     const below = await next(e)

@@ -72,7 +72,7 @@ test('the band shows the countdown, reuse, cached tokens and the cold-rewrite es
   expect(text).toContain('180k cached')
   expect(text).toContain('cold rewrite ≈ $1.44')
   const chip = await ui.find({ type: 'Text', text: '● CACHE' })
-  expect(chip?.props).toMatchObject({ bold: true, color: '#0b0b0f', backgroundColor: '#22d3ee' })
+  expect(chip?.props).toMatchObject({ bold: true, color: '#f5f3ff', backgroundColor: '#6d28d9' })
 })
 
 test('a subagent step counts in totals but does not restart the countdown', async ($, on) => {
