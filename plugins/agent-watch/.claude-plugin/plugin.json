@@ -1,0 +1,9 @@
+{
+  "name": "agent-watch",
+  "version": "0.1.0",
+  "author": {
+    "name": "Lawrence Chase"
+  },
+  "description": "Shows who is doing the work this turn: the main chat, every helper agent, its model, task, status and the skills that ran, in a band above the prompt and a side pane.",
+  "types": "./types/index.d.ts"
+}
