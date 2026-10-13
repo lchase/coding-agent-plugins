@@ -1,7 +1,7 @@
 import type { AgentRow, Run, Status } from '../types'
 
-export const CHIP_FG = '#f5f3ff'
-export const CHIP_BG = '#6d28d9'
+export const CHIP_FG = '#b8aece'
+export const CHIP_BG = '#3b2160'
 export const SKILL_COLOR = '#a3e635'
 export const TASK_MAX = 22
 export const MAIN = 'main'

@@ -3,8 +3,8 @@ import type { Limit, Reading } from '../types'
 export const GREEN = '#4ade80'
 export const AMBER = '#fbbf24'
 export const RED = '#f87171'
-export const CHIP_BG = '#6d28d9'
-export const CHIP_FG = '#f5f3ff'
+export const CHIP_BG = '#3b2160'
+export const CHIP_FG = '#b8aece'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MIN = 60_000

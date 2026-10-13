@@ -168,7 +168,7 @@ export const register: Register = on => {
 
     const { Box, Text } = $.ui.resolve(e)
     const chip = (
-      <Text bold color="#f5f3ff" backgroundColor="#6d28d9">
+      <Text bold color="#b8aece" backgroundColor="#3b2160">
         {cfg.isStrict ? ' ● STRICT  ' : '  ● REC    '}
       </Text>
     )

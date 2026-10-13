@@ -11,8 +11,8 @@ const lastStep = atom({ plugin: 'cache-clock', key: 'last' } as const, null as L
 const totals = atom({ plugin: 'cache-clock', key: 'totals' } as const, { reads: 0, writes: 0, fresh: 0, saved: 0, unpricedReads: 0 } as Totals)
 const isOn = atom({ plugin: 'cache-clock', key: 'isOn' } as const, true)
 
-const CHIP_BG = '#6d28d9'
-const CHIP_FG = '#f5f3ff'
+const CHIP_BG = '#3b2160'
+const CHIP_FG = '#b8aece'
 const GREEN = '#22c55e'
 const AMBER = '#f59e0b'
 const RED = '#ef4444'

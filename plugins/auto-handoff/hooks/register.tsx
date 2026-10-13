@@ -10,8 +10,8 @@ const DEFAULTS: Settings = { on: true, mode: 'ask', threshold: 80, hidden: false
 const FRESH_MS = 10 * 60 * 1000
 const FILE = 'HANDOFF.md'
 
-const CHIP_BG = '#6d28d9'
-const CHIP_FG = '#f5f3ff'
+const CHIP_BG = '#3b2160'
+const CHIP_FG = '#b8aece'
 const GREEN = '#4ade80'
 const AMBER = '#fbbf24'
 const RED = '#f87171'
