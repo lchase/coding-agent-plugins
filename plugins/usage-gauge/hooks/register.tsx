@@ -22,8 +22,14 @@ import {
 
 const PANE = 'usage-gauge'
 const MAX_TURNS = 10
-// matches cache-clock's ' ● CACHE ' chip so stacked bands line up
-const CHIP_WIDTH = 9
+// 11 cells, the width of auto-handoff's ' ⇄ HANDOFF ' chip, so stacked bands line up
+const CHIP_WIDTH = 11
+
+const centered = (label: string): string => {
+  const room = CHIP_WIDTH - label.length
+  const left = Math.floor(room / 2)
+  return ' '.repeat(left) + label + ' '.repeat(room - left)
+}
 const DEFAULTS: Settings = { isOn: true, warnA: 75, warnB: 90 }
 
 const snap = atom({ plugin: 'usage-gauge', key: 'snap' } as const, null)
@@ -233,7 +239,7 @@ export const register: Register = on => {
 
     const line = (
       <Text wrap="truncate-end">
-        <Text bold color={CHIP_FG} backgroundColor={CHIP_BG}>{(hasPlan ? ' ◔ PLAN ' : ' ◔ API ').padEnd(CHIP_WIDTH)}</Text>
+        <Text bold color={CHIP_FG} backgroundColor={CHIP_BG}>{centered(hasPlan ? '◔ PLAN' : '◔ API')}</Text>
         {' '}
         {segs.flatMap((seg, i) => (i === 0 ? [seg] : [sep, seg]))}
       </Text>

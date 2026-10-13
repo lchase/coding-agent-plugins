@@ -144,7 +144,7 @@ export const register: Register = (on, options) => {
     const line = (
       <Box>
         <Text bold color={INK} backgroundColor={CYAN}>
-          {' ● CACHE '}
+          {'  ● CACHE  '}
         </Text>
         <Text bold color={color}>
           {left > 0 ? ` warm ${mins(left)} ` : ' COLD '}
