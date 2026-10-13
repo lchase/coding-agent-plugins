@@ -6,12 +6,8 @@ export const SKILL_COLOR = '#a3e635'
 export const TASK_MAX = 22
 export const MAIN = 'main'
 
-const FAMILY_COLOR: Record<string, string> = {
-  fable: '#d16bff',
-  opus: '#ff8c1a',
-  sonnet: '#3d9bff',
-  haiku: '#19c3a6',
-}
+// same purple as auto-handoff's branch name
+const MODEL_COLOR = '#b794f4'
 const STATUS_COLOR: Record<Status, string> = {
   running: '#f59e0b',
   done: '#22c55e',
@@ -42,7 +38,7 @@ export function modelLabel(raw: string | undefined): string {
 
 export function modelColor(label: string): string | undefined {
   const m = FAMILY_RE.exec(label)
-  return m ? FAMILY_COLOR[m[1] as string] : undefined
+  return m ? MODEL_COLOR : undefined
 }
 
 /** Task text cut to `max` characters, ending in an ellipsis when it was longer. */
