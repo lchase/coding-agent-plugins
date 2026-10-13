@@ -1,0 +1,9 @@
+{
+  "name": "usage-gauge",
+  "version": "0.1.0",
+  "author": {
+    "name": "Lawrence Chase"
+  },
+  "description": "Plan usage windows, reset times and session API-equivalent cost in a band above the prompt.",
+  "types": "./types/index.d.ts"
+}

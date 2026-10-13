@@ -33,6 +33,13 @@
       "description": "Claude Code mod: a band line showing whether the prompt cache is still warm, with countdown, reuse percentage, cached tokens, and estimated cold-rewrite cost, plus a Compact button and /cache-clock command.",
       "category": "productivity",
       "keywords": ["cache", "prompt-cache", "mod", "band", "cost", "compact"]
+    },
+    {
+      "name": "usage-gauge",
+      "source": "./plugins/usage-gauge",
+      "description": "Claude Code mod: a band line showing plan usage windows (5-hour, weekly, spend limit) with reset times, pace warning, session cost on API billing, threshold toasts, and a /usage-gauge command with a detail pane.",
+      "category": "productivity",
+      "keywords": ["usage", "rate-limit", "plan", "mod", "band", "cost", "toast"]
     }
   ]
 }
