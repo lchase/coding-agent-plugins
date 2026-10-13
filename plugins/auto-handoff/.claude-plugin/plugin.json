@@ -1,0 +1,9 @@
+{
+  "name": "auto-handoff",
+  "version": "0.1.0",
+  "author": {
+    "name": "Lawrence Chase"
+  },
+  "description": "Band above the prompt that watches context fill and saves a HANDOFF.md before you lose your place.",
+  "types": "./types/index.d.ts"
+}

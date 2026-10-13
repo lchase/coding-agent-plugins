@@ -40,6 +40,13 @@
       "description": "Claude Code mod: a band line showing plan usage windows (5-hour, weekly, spend limit) with reset times, pace warning, session cost on API billing, threshold toasts, and a /usage-gauge command with a detail pane.",
       "category": "productivity",
       "keywords": ["usage", "rate-limit", "plan", "mod", "band", "cost", "toast"]
+    },
+    {
+      "name": "auto-handoff",
+      "source": "./plugins/auto-handoff",
+      "description": "Claude Code mod: a band line showing how full the chat is, saving a HANDOFF.md at a threshold (auto or on request), then clear and continue or resume in a new session, plus a /auto-handoff command.",
+      "category": "productivity",
+      "keywords": ["handoff", "context", "mod", "band", "compaction", "resume"]
     }
   ]
 }
