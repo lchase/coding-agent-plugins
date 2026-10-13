@@ -51,7 +51,7 @@ test('band shows chip, meter and threshold on terminal and desktop', async ($, o
     await $.session.measure(usage(62))
     await ui.redraw()
     const text = (await ui.find({ type: 'Text', text: /HANDOFF/ }))?.text ?? ''
-    expect(text).toContain('⇄ HANDOFF')
+    expect(text).toContain('HANDOFF ⇄')
     expect(await ui.find({ type: 'Text', text: /ctx ▰▰▰▰▱▱ 62%/ })).toBeDefined()
     expect(await ui.find({ key: 'save' })).toBeDefined()
     // Stacked on top of the other mod's line, not replacing it.

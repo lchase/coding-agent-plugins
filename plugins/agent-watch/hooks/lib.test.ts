@@ -38,7 +38,7 @@ test('task is cut to 22 characters with an ellipsis', () => {
 test('wide band matches the spec line', () => {
   const line = text(bandSegs(sample(), 200))
   expect(line).toBe(
-    ' ◎ AGENTS   main opus·5.5 ⟳ │ Explore haiku·4.5 "find the hooks" ✓ · fact-checker sonnet·5.5 "check the prices" ⟳ │ skills: watch',
+    '  AGENTS ◎  main opus·5.5 ⟳ │ Explore haiku·4.5 "find the hooks" ✓ · fact-checker sonnet·5.5 "check the prices" ⟳ │ skills: watch',
   )
 })
 

@@ -76,7 +76,7 @@ test('chip stacks on other lines, only while on', async ($: any, on: any) => {
   await $.command.run({ command: 'rec', args: '' })
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...bandProps, surface })
-    expect(await ui.find({ type: 'Text', text: / ● REC / })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: / REC ● / })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /another mod line/ })).toBeDefined()
     await ui.unmount()
   }
