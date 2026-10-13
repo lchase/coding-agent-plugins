@@ -47,6 +47,9 @@ test('pure helpers', () => {
   expect(isSafeGitdir('//host/share/.git/worktrees/x')).toBe(false)
   expect(isSafeGitdir('\\\\host\\share\\.git\\worktrees\\x')).toBe(false)
   expect(isSafeGitdir('/etc')).toBe(false)
+  expect(isSafeGitdir('/\\host\\share\\.git\\worktrees\\x')).toBe(false)
+  expect(isSafeGitdir('\\/host/share/.git/worktrees/x')).toBe(false)
+  expect(isSafeGitdir('C:\\r\\.git\\worktrees\\x')).toBe(true)
 })
 
 test('band shows chip, meter and threshold on terminal and desktop', async ($, on) => {

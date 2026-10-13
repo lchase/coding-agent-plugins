@@ -78,8 +78,8 @@ async function save($: EngineInterface, s: Settings) {
 export const branchFromHead = (head: string): string =>
   (head.match(/^ref: refs\/heads\/(.+)$/m)?.[1]?.trim() ?? head.trim().slice(0, 7)).replace(/[\x00-\x1f\x7f-\x9f]/g, '')
 
-// a .git pointer file is untrusted: follow it only to a local worktree/submodule gitdir, never a UNC or network path
-export const isSafeGitdir = (p: string): boolean => /^(\/|[A-Za-z]:[\\/])/.test(p) && !/^(\/\/|\\\\)/.test(p) && /[\\/]\.git[\\/](worktrees|modules)[\\/]/.test(p)
+// a .git pointer file is untrusted: follow it only to a local worktree/submodule gitdir, never a UNC or network path (any two leading slashes, either kind, are UNC on Windows)
+export const isSafeGitdir = (p: string): boolean => !/^[\\/]{2}/.test(p) && /^(\/|[A-Za-z]:[\\/])/.test(p) && /[\\/]\.git[\\/](worktrees|modules)[\\/]/.test(p)
 
 // ponytail: reads .git/HEAD from the cwd up (5 levels), no git subprocess. Worktrees follow the .git pointer file.
 async function readBranch($: EngineInterface): Promise<string> {
