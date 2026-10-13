@@ -1,0 +1,9 @@
+{
+  "name": "recording-mode",
+  "version": "0.1.0",
+  "author": {
+    "name": "Lawrence Chase"
+  },
+  "description": "Screen-record Claude Code without leaking secrets: tells the model to keep keys, emails and private words off screen, and masks them in the transcript display only.",
+  "types": "./types/index.d.ts"
+}

@@ -11,49 +11,117 @@
       "source": "./plugins/smart-review",
       "description": "Multi-lens code review of a diff: six specialized lenses (spec-conformance, correctness, security, performance, design, tests) merged into one deduplicated, severity-ranked verdict. Fast single-pass (min) and orchestrated ensemble (max) modes.",
       "category": "development",
-      "keywords": ["smart-review", "review", "quality", "security", "performance", "pr", "pre-merge"]
+      "keywords": [
+        "smart-review",
+        "review",
+        "quality",
+        "security",
+        "performance",
+        "pr",
+        "pre-merge"
+      ]
     },
     {
       "name": "tldraw",
       "source": "./plugins/tldraw",
       "description": "Turn a natural-language description of a flowchart, architecture diagram, process map, or state machine into an editable tldraw document (.tldr) plus a rendered PNG/SVG. Provides the /tldraw:diagram skill.",
       "category": "productivity",
-      "keywords": ["tldraw", "diagram", "flowchart", "architecture-diagram", "tldr", "visualization"]
+      "keywords": [
+        "tldraw",
+        "diagram",
+        "flowchart",
+        "architecture-diagram",
+        "tldr",
+        "visualization"
+      ]
     },
     {
       "name": "test-drive",
       "source": "./plugins/test-drive",
       "description": "Record a before/after test drive of a UI or backend API change: /test-drive:baseline records the app before you edit, /test-drive:compare replays the same scripted scenario after the change and gives a deterministic pass/warn/fail verdict, with a side-by-side video for UI or a request, response, and server-log report for API.",
       "category": "development",
-      "keywords": ["test-drive", "demo", "video", "playwright", "api", "before-after", "pr", "e2e"]
+      "keywords": [
+        "test-drive",
+        "demo",
+        "video",
+        "playwright",
+        "api",
+        "before-after",
+        "pr",
+        "e2e"
+      ]
     },
     {
       "name": "cache-clock",
       "source": "./plugins/cache-clock",
       "description": "Claude Code mod: a band line showing whether the prompt cache is still warm, with countdown, reuse percentage, cached tokens, and estimated cold-rewrite cost, plus a Compact button and /cache-clock command.",
       "category": "productivity",
-      "keywords": ["cache", "prompt-cache", "mod", "band", "cost", "compact"]
+      "keywords": [
+        "cache",
+        "prompt-cache",
+        "mod",
+        "band",
+        "cost",
+        "compact"
+      ]
     },
     {
       "name": "usage-gauge",
       "source": "./plugins/usage-gauge",
       "description": "Claude Code mod: a band line showing plan usage windows (5-hour, weekly, spend limit) with reset times, pace warning, session cost on API billing, threshold toasts, and a /usage-gauge command with a detail pane.",
       "category": "productivity",
-      "keywords": ["usage", "rate-limit", "plan", "mod", "band", "cost", "toast"]
+      "keywords": [
+        "usage",
+        "rate-limit",
+        "plan",
+        "mod",
+        "band",
+        "cost",
+        "toast"
+      ]
     },
     {
       "name": "auto-handoff",
       "source": "./plugins/auto-handoff",
       "description": "Claude Code mod: a band line showing how full the chat is, saving a HANDOFF.md at a threshold (auto or on request), then clear and continue or resume in a new session, plus a /auto-handoff command.",
       "category": "productivity",
-      "keywords": ["handoff", "context", "mod", "band", "compaction", "resume"]
+      "keywords": [
+        "handoff",
+        "context",
+        "mod",
+        "band",
+        "compaction",
+        "resume"
+      ]
     },
     {
       "name": "agent-watch",
       "source": "./plugins/agent-watch",
       "description": "Claude Code mod: a band line showing who is doing the work this turn (main chat, helper agents, models, tasks, status, skills), plus a /agent-watch pane with per-agent blocks, per-model totals and a timeline.",
       "category": "productivity",
-      "keywords": ["agents", "subagents", "models", "skills", "mod", "band", "pane"]
+      "keywords": [
+        "agents",
+        "subagents",
+        "models",
+        "skills",
+        "mod",
+        "band",
+        "pane"
+      ]
+    },
+    {
+      "name": "recording-mode",
+      "source": "./plugins/recording-mode",
+      "description": "Claude Code mod: screen-record without leaking secrets. Tells the model to keep keys, emails and private words off screen and masks them in the transcript display only, with a red REC chip and a /rec command.",
+      "category": "productivity",
+      "keywords": [
+        "recording",
+        "privacy",
+        "secrets",
+        "mod",
+        "band",
+        "masking"
+      ]
     }
   ]
 }
