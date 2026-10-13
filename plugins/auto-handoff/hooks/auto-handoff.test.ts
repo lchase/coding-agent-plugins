@@ -1,7 +1,7 @@
 import type { On, RenderElement } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { ago, meter, objectiveOf } from './register'
+import { ago, branchFromHead, meter, objectiveOf } from './register'
 
 const BAND = {
   plugin: 'auto-handoff',
@@ -40,6 +40,8 @@ test('pure helpers', () => {
   expect(ago(5 * 60 * 1000)).toBe('5m ago')
   expect(objectiveOf('# Handoff\n## Objective\nShip the band\n## Done')).toBe('Ship the band')
   expect(objectiveOf('**Objective:** Fix login')).toBe('Fix login')
+  expect(branchFromHead('ref: refs/heads/feat/x\n')).toBe('feat/x')
+  expect(branchFromHead('0123456789abcdef\n')).toBe('0123456')
 })
 
 test('band shows chip, meter and threshold on terminal and desktop', async ($, on) => {
