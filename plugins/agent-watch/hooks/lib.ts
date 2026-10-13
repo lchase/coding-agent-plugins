@@ -1,7 +1,7 @@
 import type { AgentRow, Run, Status } from '../types'
 
-export const CHIP_FG = '#0b0b0f'
-export const CHIP_BG = '#f472b6'
+export const CHIP_FG = '#f5f3ff'
+export const CHIP_BG = '#6d28d9'
 export const SKILL_COLOR = '#a3e635'
 export const TASK_MAX = 22
 export const MAIN = 'main'
@@ -138,7 +138,7 @@ export function bandSegs(run: Run, columns: number): Seg[] {
   let skillsShown = run.skills.length
 
   const build = (): Seg[] => {
-    const segs: Seg[] = [{ t: ' ◎ AGENTS ', bold: true, color: CHIP_FG, bg: CHIP_BG }, { t: ' ' }, ...agentSegs(main, false)]
+    const segs: Seg[] = [{ t: ' ◎ AGENTS  ', bold: true, color: CHIP_FG, bg: CHIP_BG }, { t: ' ' }, ...agentSegs(main, false)]
     const visible = all.slice(0, all.length - hidden)
     if (visible.length > 0 || hidden > 0) {
       segs.push(SEP)
