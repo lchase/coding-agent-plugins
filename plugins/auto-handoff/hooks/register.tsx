@@ -326,7 +326,9 @@ export const register: Register = on => {
       const color = isHot ? RED : percent >= 60 ? AMBER : GREEN
       body = (
         <Box>
-          <Text color={color}>{`ctx ${meter(percent)} ${Math.round(percent)}% `}</Text>
+          <Text>
+            ctx <Text color={color}>{`${meter(percent)} ${Math.round(percent)}%`}</Text>{' '}
+          </Text>
           <Text dimColor>{b.phase === 'saving' ? '· saving handoff… ' : `· ${s.mode === 'auto' ? 'auto-saves' : 'saves'} at ${s.threshold}% `}</Text>
           {b.phase !== 'saving' && (
             <Button key="save" plain hotkey="h" label="save now" onPress={() => startSave($, 'manual')} />
