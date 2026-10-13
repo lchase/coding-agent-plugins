@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { AgentRow, Run } from '../types'
-import { addCall, addSkill, addUsage, bandSegs, blankAgent, cut, emptyRun, modelLabel, text, timelineBar, touch, tree } from './lib'
+import { addCall, addSkill, addUsage, bandSegs, blankAgent, cut, emptyRun, modelColor, modelLabel, text, timelineBar, touch, tree } from './lib'
 
 const helper = (id: string, type: string, task: string, model: string, status: AgentRow['status'] = 'running'): Partial<AgentRow> => ({
   type,
@@ -17,6 +17,11 @@ export function sample(): Run {
   r = addSkill(r, 'main', 'watch', 3)
   return r
 }
+
+test('every model family shares the branch purple, unknown models stay default', () => {
+  for (const l of ['fable·5.1', 'opus·5.5', 'sonnet·5.5', 'haiku·4.5']) expect(modelColor(l)).toBe('#b794f4')
+  expect(modelColor('mystery')).toBeUndefined()
+})
 
 test('model labels', () => {
   expect(modelLabel('claude-opus-5-5')).toBe('opus·5.5')
