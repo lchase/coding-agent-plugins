@@ -1,7 +1,7 @@
 import type { On, RenderElement } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { ago, branchFromHead, meter, objectiveOf } from './register'
+import { ago, branchFromHead, isSafeGitdir, meter, objectiveOf } from './register'
 
 const BAND = {
   plugin: 'auto-handoff',
@@ -42,6 +42,11 @@ test('pure helpers', () => {
   expect(objectiveOf('**Objective:** Fix login')).toBe('Fix login')
   expect(branchFromHead('ref: refs/heads/feat/x\n')).toBe('feat/x')
   expect(branchFromHead('0123456789abcdef\n')).toBe('0123456')
+  expect(branchFromHead('ref: refs/heads/a\x1b[2Jb\n')).toBe('a[2Jb')
+  expect(isSafeGitdir('/repo/.git/worktrees/wt')).toBe(true)
+  expect(isSafeGitdir('//host/share/.git/worktrees/x')).toBe(false)
+  expect(isSafeGitdir('\\\\host\\share\\.git\\worktrees\\x')).toBe(false)
+  expect(isSafeGitdir('/etc')).toBe(false)
 })
 
 test('band shows chip, meter and threshold on terminal and desktop', async ($, on) => {
