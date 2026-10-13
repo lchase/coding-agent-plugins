@@ -287,7 +287,7 @@ export const register: Register = on => {
 
     const chip = (
       <Text bold color={CHIP_FG} backgroundColor={CHIP_BG}>
-        {' ⇄ HANDOFF '}
+        {' HANDOFF ⇄ '}
       </Text>
     )
 

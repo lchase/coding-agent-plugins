@@ -138,7 +138,7 @@ export function bandSegs(run: Run, columns: number): Seg[] {
   let skillsShown = run.skills.length
 
   const build = (): Seg[] => {
-    const segs: Seg[] = [{ t: ' ◎ AGENTS  ', bold: true, color: CHIP_FG, bg: CHIP_BG }, { t: ' ' }, ...agentSegs(main, false)]
+    const segs: Seg[] = [{ t: '  AGENTS ◎ ', bold: true, color: CHIP_FG, bg: CHIP_BG }, { t: ' ' }, ...agentSegs(main, false)]
     const visible = all.slice(0, all.length - hidden)
     if (visible.length > 0 || hidden > 0) {
       segs.push(SEP)
