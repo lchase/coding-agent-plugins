@@ -221,7 +221,7 @@ export const register: Register = on => {
       const pct = s.contextPercent as number
       segs.push(
         <Text>
-          ctx <Text color={colorFor(pct)}>{bar(pct, 6)} {pctText(pct)}</Text>
+          <Text color={colorFor(pct)}>ctx {bar(pct, 6)} {pctText(pct)}</Text>
         </Text>,
       )
     }
