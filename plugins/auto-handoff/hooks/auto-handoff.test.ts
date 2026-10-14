@@ -61,6 +61,8 @@ test('band shows chip, meter and threshold on terminal and desktop', async ($, o
     const text = (await ui.find({ type: 'Text', text: /HANDOFF/ }))?.text ?? ''
     expect(text).toContain('HANDOFF ⇄')
     expect(await ui.find({ type: 'Text', text: /ctx ▰▰▰▰▱▱ 62%/ })).toBeDefined()
+    // only the bar and percent take the level color, the ctx label stays default
+    expect((await ui.find({ type: 'Text', text: /^▰▰▰▰▱▱ 62%$/ }))?.props).toMatchObject({ color: '#fbbf24' })
     expect(await ui.find({ key: 'save' })).toBeDefined()
     // Stacked on top of the other mod's line, not replacing it.
     expect(await ui.find({ type: 'Text', text: /another mod line/ })).toBeDefined()
