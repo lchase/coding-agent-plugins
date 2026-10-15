@@ -1,13 +1,18 @@
 # lchase
 
-Lawrence Chase's Claude Code marketplace: code review and diagram tools for Claude Code
-and other coding agents.
+Lawrence Chase's Claude Code marketplace: code review, diagram, and test-evidence skills,
+plus a set of small Claude Code mods that add band lines and panes to the terminal UI.
 
 ```
 /plugin marketplace add lchase/skills
 /plugin install smart-review@lchase
 /plugin install tldraw@lchase
 /plugin install test-drive@lchase
+/plugin install cache-clock@lchase
+/plugin install usage-gauge@lchase
+/plugin install auto-handoff@lchase
+/plugin install agent-watch@lchase
+/plugin install recording-mode@lchase
 ```
 
 Each plugin is independent; install only what you want. `@lchase` is the marketplace name
@@ -70,6 +75,11 @@ The tldraw skill's command also changed: `/tldraw:tldraw` → **`/tldraw:diagram
 | [**smart-review**](plugins/smart-review/) | Ensemble code review: six specialized lenses over a diff, merged into one deduplicated, severity-ranked verdict | `/smart-review:{review,min,max,add-pr-review,review-pr-comments}` + auto-trigger | Claude Code, Cursor, Codex, Gemini CLI, any AGENTS.md agent |
 | [**tldraw**](plugins/tldraw/) | Natural-language description → editable tldraw document (`.tldr`) + rendered PNG/SVG | `/tldraw:diagram` + auto-trigger | Claude Code only (needs Node + `npx`) |
 | [**test-drive**](plugins/test-drive/) | Before/after evidence of a UI or API change: record the app before you edit, replay the same scripted scenario after, with a deterministic verdict | `/test-drive:{baseline,compare}` + auto-trigger | Claude Code only (needs Node; UI also needs Playwright and ffmpeg) |
+| [**cache-clock**](plugins/cache-clock/) | Mod: band line showing whether the prompt cache is warm, with countdown, reuse %, cached tokens, and estimated cold-rewrite cost | Compact button, `/cache-clock` | Claude Code only |
+| [**usage-gauge**](plugins/usage-gauge/) | Mod: band line with plan usage windows (5-hour, weekly, spend limit), reset times, pace warning, session cost on API billing, threshold toasts | `/usage-gauge` (detail pane) | Claude Code only |
+| [**auto-handoff**](plugins/auto-handoff/) | Mod: band line showing how full the chat is; saves a `HANDOFF.md` at a threshold (auto or on request), then clear and continue or resume in a new session | `/auto-handoff` | Claude Code only |
+| [**agent-watch**](plugins/agent-watch/) | Mod: band line showing who is doing the work this turn (main chat, helper agents, models, tasks, status, skills), plus a pane with per-agent blocks, per-model totals, timeline | `/agent-watch` | Claude Code only |
+| [**recording-mode**](plugins/recording-mode/) | Mod: screen-record without leaking secrets; tells the model to keep keys, emails, private words off screen and masks them in the transcript display only, red REC chip | `/rec` | Claude Code only |
 
 ---
 
@@ -167,10 +177,35 @@ Details: [`baseline`](plugins/test-drive/skills/baseline/SKILL.md) and
 
 ---
 
+## Claude Code mods
+
+Five small plugins that change Claude Code's own interface instead of adding a task skill.
+Each draws a band line above the prompt (some add a side pane or slash command), is
+independent of the others, and works on Claude Code only.
+
+- **cache-clock**: is the prompt cache still warm? Countdown, reuse percentage, cached
+  tokens, and the estimated cost of a cold rewrite, with a Compact button. Config:
+  `cacheMinutes` (5 or 60, default 60) to match your cache TTL.
+- **usage-gauge**: plan usage windows (5-hour, weekly, spend limit) with reset times and a
+  pace warning; session cost on API billing; threshold toasts. `/usage-gauge` opens a detail pane.
+- **auto-handoff**: watches context fill and saves a `HANDOFF.md` at a threshold (automatically
+  or on request), then clears and continues, or resumes in a new session. `/auto-handoff`.
+- **agent-watch**: who is doing the work this turn: main chat, helper agents, models, tasks,
+  status, skills. `/agent-watch` opens a pane with per-agent blocks, per-model totals, and a timeline.
+- **recording-mode**: for screen recordings. Tells the model to keep keys, emails, and private
+  words off screen and masks them in the transcript display only (the underlying transcript is
+  untouched). Red REC chip, `/rec` to toggle.
+
+```
+/plugin install cache-clock@lchase    # or usage-gauge, auto-handoff, agent-watch, recording-mode
+```
+
+---
+
 ## Repo layout
 
 ```
-.claude-plugin/marketplace.json   # the "lchase" marketplace: 4 plugin entries
+.claude-plugin/marketplace.json   # the "lchase" marketplace: 8 plugin entries
 AGENTS.md                         # repo-level agent pointer (→ smart-review)
 gemini-extension.json + GEMINI.md # Gemini CLI installs the repo as an extension (→ smart-review)
 
@@ -192,6 +227,11 @@ plugins/test-drive/               # plugin 3, Claude Code only
   skills/{baseline,compare}/      # SKILL.md each
   scripts/{lib.mjs,record.mjs,record-api.mjs,redact.mjs,verdict.mjs,compose.sh,report.mjs}   # shared by both skills
   references/                     # UI and API scenario schemas + examples
+
+plugins/{cache-clock,usage-gauge,auto-handoff,agent-watch,recording-mode}/   # plugins 4-8, Claude Code mods
+  .claude-plugin/plugin.json      # each with its own version
+  hooks/                          # register.tsx (the mod) + hooks.json, tests where present
+  types/                          # mod API typings
 ```
 
 ## Developing
@@ -206,7 +246,8 @@ it on every user-facing change and push to `main`.
 
 - smart-review: version is pinned across all its manifests; bump them together with
   `./plugins/smart-review/scripts/bump-version.sh <version>`.
-- tldraw: versions independently; edit `plugins/tldraw/.claude-plugin/plugin.json`.
+- tldraw, test-drive, and each mod: version independently; edit that plugin's
+  `.claude-plugin/plugin.json`.
 
 Once pushed, installed clients pick it up on their next background marketplace refresh, or
 immediately with `/plugin marketplace update lchase`.
