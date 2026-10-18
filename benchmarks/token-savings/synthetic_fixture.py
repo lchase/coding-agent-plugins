@@ -18,6 +18,7 @@ BASE_TOKENS = (1000, 4000, 200_000, 3000)
 def _row(arm: str, task: str, rep: int, cost: float, tokens: tuple[int, int, int, int], passed: bool) -> dict:
     return {
         "arm": arm,
+        "backend": "anthropic",
         "cache_read": tokens[2],
         "cache_write": tokens[1],
         "claude_version": "synthetic",
@@ -29,6 +30,7 @@ def _row(arm: str, task: str, rep: int, cost: float, tokens: tuple[int, int, int
         "output": tokens[3],
         "pass": passed,
         "pilot": False,
+        "quick": False,
         "rep": rep,
         "schema": 1,
         "synthetic": True,

@@ -1,6 +1,7 @@
 # Testdata
 
-`synthetic-runs.jsonl` is invented. Every row has `"synthetic": true` and
+`synthetic-runs.jsonl` is invented. Every row has `"synthetic": true`,
+`"backend": "anthropic"`, `"quick": false`, and
 `"claude_version": "synthetic"`. It exists so `analyze.py` can be checked without an
 API key. It is not a measurement of Claude Code or of any plugin.
 

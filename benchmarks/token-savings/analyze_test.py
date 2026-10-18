@@ -63,6 +63,9 @@ class RecordTests(unittest.TestCase):
         self.assertEqual(record["output"], 20)
         self.assertEqual(record["wall_s"], 2.5)
         self.assertTrue(record["pass"])
+        self.assertEqual(record["backend"], "anthropic")
+        self.assertFalse(record["quick"])
+        self.assertIsNone(record["ollama_base_url"])
         self.assertEqual(record["model_resolved"], "claude-sonnet-5")
         blob = json.dumps(record)
         self.assertNotIn("secretvalue", blob)
@@ -166,6 +169,61 @@ class SummaryTests(unittest.TestCase):
         versus = self.arms["cheaper"].get("versus_concise")
         self.assertIsNotNone(versus)
         self.assertLess(versus["hi"], 1)
+
+    def test_local_cheap_cost_is_not_a_saving(self):
+        rows = []
+        for row in self.rows:
+            local = dict(row, backend="local", model="qwen3-coder", quick=False)
+            if local["arm"] != "baseline":
+                local["cost_usd"] = 0.01
+            rows.append(local)
+        summary = summarize_and_attach(rows)
+        self.assertEqual(len(summary["groups"]), 1)
+        group = summary["groups"][0]
+        self.assertEqual(group["backend"], "local")
+        self.assertFalse(group["quick"])
+        cheap = group["arms"]["cheaper"]
+        self.assertEqual(cheap["label"], "fewer tokens")
+        self.assertNotEqual(cheap["label"], "real saving")
+        self.assertIsNone(cheap["cost"])
+        flat = []
+        for row in self.rows:
+            if row["arm"] != "baseline":
+                continue
+            flat.append(dict(row, backend="local", model="qwen3-coder", cost_usd=1.0))
+            flat.append(
+                dict(
+                    row,
+                    arm="priced",
+                    backend="local",
+                    model="qwen3-coder",
+                    cost_usd=0.01,
+                )
+            )
+        flat_summary = summarize_and_attach(flat)
+        self.assertEqual(flat_summary["groups"][0]["arms"]["priced"]["label"], "no token evidence")
+        report = render_markdown(flat_summary, source="results/local.jsonl")
+        self.assertIn("not a cost result", report)
+        self.assertIn("not a prompt-cache result", report)
+        self.assertIn("does not apply to a local section", report)
+
+    def test_local_and_anthropic_stay_in_separate_sections(self):
+        local = [dict(row, backend="local", model="qwen3-coder") for row in self.rows]
+        summary = summarize_and_attach(self.rows + local)
+        backends = [group["backend"] for group in summary["groups"]]
+        self.assertEqual(backends, ["anthropic", "local"])
+        self.assertEqual(summary["groups"][0]["arms"]["cheaper"]["label"], "real saving")
+        self.assertEqual(summary["groups"][1]["arms"]["cheaper"]["label"], "fewer tokens")
+        report = render_markdown(summary, source="mixed.jsonl")
+        self.assertIn("mixes local and Anthropic", report)
+
+    def test_quick_preset_warns_that_the_interval_is_not_proof(self):
+        rows = [dict(row, quick=True) for row in self.rows]
+        summary = summarize_and_attach(rows)
+        self.assertTrue(summary["groups"][0]["quick"])
+        report = render_markdown(summary, source="results/quick.jsonl")
+        self.assertIn("not proof", report)
+        self.assertIn("interval is wide", report)
 
 
 if __name__ == "__main__":

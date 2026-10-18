@@ -47,14 +47,48 @@ sentinel=$(mktemp)
   export PATH="$ROOT/testdata/bin:$PATH"
   unset ANTHROPIC_API_KEY
   ./run_bench.sh --plan >/dev/null
+  quick_plan=$(./run_bench.sh --plan --quick)
+  local_plan=$(./run_bench.sh --plan --ollama qwen3-coder)
+  both_plan=$(./run_bench.sh --plan --quick --ollama qwen3-coder)
   set +e
   ./run_bench.sh -n 1 >/dev/null 2>&1
   no_yes=$?
   ./run_bench.sh --pilot --yes >/dev/null 2>&1
   no_key=$?
+  ./run_bench.sh --quick >/dev/null 2>&1
+  quick_gate=$?
+  ./run_bench.sh --plan --ollama qwen3-coder -m sonnet >/dev/null 2>&1
+  clash=$?
+  ./run_bench.sh --plan --ollama qwen3-coder -a "baseline headroom" >/dev/null 2>&1
+  headroom_clash=$?
+  BENCH_OLLAMA_BASE_URL=http://127.0.0.1:9 ./run_bench.sh --ollama qwen3-coder -n 1 -a baseline -t t1-intrange >/tmp/token-savings-ollama-out 2>/tmp/token-savings-ollama-err
+  ollama_down=$?
   set -e
   [[ $no_yes -eq 2 ]]
   [[ $no_key -ne 0 ]]
+  [[ $quick_gate -eq 2 ]]
+  [[ $clash -ne 0 ]]
+  [[ $headroom_clash -ne 0 ]]
+  [[ $ollama_down -eq 1 ]]
+  printf '%s\n' "$quick_plan" | grep -q 'preset: quick'
+  printf '%s\n' "$quick_plan" | grep -q 'model: claude-haiku-5-5'
+  printf '%s\n' "$quick_plan" | grep -q 'reps: 2'
+  printf '%s\n' "$quick_plan" | grep -q 't2-splitopt'
+  printf '%s\n' "$quick_plan" | grep -q 't3-explain'
+  printf '%s\n' "$quick_plan" | grep -q 'sessions: 24'
+  printf '%s\n' "$quick_plan" | grep -q 'hard ceiling for this selection: $120.00'
+  printf '%s\n' "$quick_plan" | grep -q 'not proof'
+  printf '%s\n' "$local_plan" | grep -q 'backend: local'
+  printf '%s\n' "$local_plan" | grep -q 'skipping headroom'
+  printf '%s\n' "$local_plan" | grep -q 'dollar cap: not applied'
+  printf '%s\n' "$local_plan" | grep -q 'sessions: 100'
+  printf '%s\n' "$both_plan" | grep -q 'sessions: 20'
+  printf '%s\n' "$both_plan" | grep -q 'model: qwen3-coder'
+  grep -q 'not reachable' /tmp/token-savings-ollama-err
+  if grep -q 'Nothing was sent' /tmp/token-savings-ollama-err; then
+    printf '%s\n' "local mode hit the paid cost gate" >&2
+    exit 1
+  fi
 )
 if [[ -s $sentinel ]]; then
   printf '%s\n' "claude was invoked during the cost gate" >&2
@@ -112,8 +146,40 @@ assert row["grade"] == "FAIL:suite"
 assert row["pass"] is False
 assert row["target_commit"] == "8b19813f2bfca99f1018a587a8cf54fc959f2e5d"
 assert row["schema"] == 1
+assert row["backend"] == "anthropic"
+assert row["quick"] is False
+assert row["ollama_base_url"] is None
 assert "claude_version" in row
 assert row["started_at"] and row["ended_at"]
+PY
+
+printf '== local dry-run is tagged and does not call claude\n'
+sentinel=$(mktemp)
+(
+  export CLAUDE_SENTINEL=$sentinel
+  export PATH="$ROOT/testdata/bin:$PATH"
+  unset ANTHROPIC_API_KEY
+  ./run_bench.sh --dry-run --fresh --ollama qwen3-coder
+)
+if [[ -s $sentinel ]]; then
+  printf '%s\n' "local dry-run invoked claude" >&2
+  exit 1
+fi
+rm -f "$sentinel"
+python3 - <<'PY'
+import json
+from pathlib import Path
+rows = [json.loads(line) for line in Path("results/local.jsonl").read_text().splitlines() if line.strip()]
+assert len(rows) == 1, len(rows)
+row = rows[0]
+assert row["dry_run"] is True
+assert row["backend"] == "local"
+assert row["model"] == "qwen3-coder"
+assert row["quick"] is False
+assert row["ollama_base_url"] == "http://127.0.0.1:11434"
+assert row["arm"] == "baseline"
+assert row["task"] == "t1-intrange"
+assert row["grade"] == "FAIL:suite"
 PY
 
 printf '== graders\n'

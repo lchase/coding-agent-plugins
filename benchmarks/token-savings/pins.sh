@@ -20,6 +20,17 @@ DEFAULT_MAX_TURNS=60
 DEFAULT_MAX_BUDGET_USD=5
 DEFAULT_WALL_TIMEOUT=2700
 
+# Cheap paid preset. Full model id: the short alias "haiku" has resolved to
+# Sonnet in Claude Code, so the preset does not use it. Haiku 5.5 is the
+# current low-priced tool-using Claude Code model (claude-haiku-5-5).
+QUICK_REPS=2
+QUICK_TASKS="t2-splitopt t3-explain"
+QUICK_MODEL=claude-haiku-5-5
+
+# Ollama's Anthropic-compatible endpoint (v0.14.0 and later). Override with
+# BENCH_OLLAMA_BASE_URL, or with OLLAMA_HOST (host:port or a full URL).
+DEFAULT_OLLAMA_BASE=http://127.0.0.1:11434
+
 # Adding a task is deliberate: a new file under tasks/ is not billed until it
 # is listed here and grade.sh knows how to score it. Adding an arm is the
 # opposite: every arms/*.sh (except _*.sh) joins the default matrix.

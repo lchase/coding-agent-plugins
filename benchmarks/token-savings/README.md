@@ -29,8 +29,10 @@ That is baseline, the first task, one repeat, still capped at $5, written to
 `results/pilot.jsonl`. Multiply a pilot row by 120 only as a rough upper feel for the
 full matrix. The ceiling remains $600.
 
-Without `--yes`, `./run_bench.sh` prints the ceiling for the selection you asked for and
-exits 2. It does not check for an API key and it does not call Claude.
+Without `--yes`, a paid `./run_bench.sh` prints the ceiling for the selection you asked
+for and exits 2. It does not check for an API key and it does not call Claude.
+`--ollama` does not use that gate: a local server is not an Anthropic bill. The two
+cheaper ways to run are below.
 
 `--plan` prints the matrix and exits 0. No key, no Claude.
 
@@ -42,12 +44,102 @@ Subscription billing is a different measurement. `total_cost_usd` is list price 
 `ANTHROPIC_API_KEY` is set, and the prompt-cache TTL on an API key is 5 minutes. Do not
 mix subscription runs into the same JSONL if you want the ratios to mean one thing.
 
+## Local model (`--ollama`)
+
+Ollama 0.14.0 and later speaks the Anthropic Messages API, which is what Claude Code
+sends. That is the current recommended connection (checked 2026-10-18 against
+[Ollama's Claude Code page](https://docs.ollama.com/integrations/claude-code)):
+
+```bash
+ollama serve
+ollama pull qwen3-coder
+./run_bench.sh --plan --ollama qwen3-coder
+./run_bench.sh --ollama qwen3-coder
+```
+
+Use the name you pulled. A local Qwen around 27B is a reasonable shake-out model if that
+is the tag `ollama list` shows. Ollama recommends at least a 32k context for Claude Code,
+and 64k for a larger repo. Set that on the model (a Modelfile or `OLLAMA_CONTEXT_LENGTH`).
+The harness does not set it for you. Click at this pin is a small tree.
+
+For each session the harness points Claude Code at the local server and clears the API
+key so a key in your shell is not sent:
+
+```bash
+ANTHROPIC_BASE_URL=http://127.0.0.1:11434
+ANTHROPIC_AUTH_TOKEN=ollama
+ANTHROPIC_API_KEY=
+ANTHROPIC_DEFAULT_SONNET_MODEL=<the --ollama name>
+ANTHROPIC_DEFAULT_HAIKU_MODEL=<the --ollama name>
+ANTHROPIC_DEFAULT_OPUS_MODEL=<the --ollama name>
+claude --model <the --ollama name>
+```
+
+The three `ANTHROPIC_DEFAULT_*_MODEL` variables matter because Claude Code sometimes
+asks for a Sonnet, Haiku, or Opus id on its own. Mapped this way, that request stays on
+the local model. Official Ollama setup is the base URL, the token, the empty API key,
+and `--model`. The harness adds the tier map on top of that.
+
+Override the URL with `BENCH_OLLAMA_BASE_URL` (full URL) or `OLLAMA_HOST` (`host:port`
+or a full URL). Before any live local session the harness fetches `$BASE/api/tags` and
+requires the model name, or that name with `:latest`. `--plan` and `--dry-run` do not
+need the server to be up.
+
+Rows are `backend: "local"`, `model` is the Ollama name, and the file is
+`results/local.jsonl`. `analyze.py` puts them in their own section. The headline there
+is a paired **token** ratio. A dollar figure, including a zero, is not a cost result.
+
+Use this mode for harness shake-out and for rough raw-token deltas (a tool-output
+plugin, a terse-output plugin). Do not use it for cost or prompt-cache conclusions.
+There is no Anthropic cache billing and no 5-minute TTL. The tokenizer and the agent
+behavior are not Claude's.
+
+`--ollama` does not shrink the matrix. With the six shipped arms it drops Headroom and
+runs 4 tasks x 5 arms x 5 repeats = 100 sessions. That is free of API cost and expensive
+in GPU time. Cut it with `--quick`, `-n`, or `-t`.
+
+Headroom is skipped, with a message. Headroom is itself a proxy and sets
+`ANTHROPIC_BASE_URL`. Stacking it on Ollama would send traffic to the wrong place, and
+a custom base URL disables MCP tool search. Passing `-a` with `headroom` included is an
+error, so the conflict is not a silent skip inside an explicit list. `--max-budget-usd`
+is not passed. `--yes` is not required. Max turns and the wall timeout still apply.
+
+An arm `settings.json` `env` block can override the process environment. None of the
+shipped arms except Headroom set `ANTHROPIC_BASE_URL`, and Headroom does not run here.
+
+## Quick paid preset (`--quick`)
+
+A small real Claude run, still billed, still gated on `--yes`:
+
+```bash
+./run_bench.sh --plan --quick
+./run_bench.sh --quick --yes
+```
+
+The preset is the noisy-bug task (`t2-splitopt`), the read-heavy explanation
+(`t3-explain`), 2 repeats, and every arm. The model is `claude-haiku-5-5` (Haiku 5.5).
+That is 2 tasks x 6 arms x 2 repeats = **24 sessions**. At the default $5 cap the hard
+ceiling is **$120**. The plan prints both numbers before anything is sent.
+
+Haiku 5.5 is the current low-priced Claude Code model that still uses tools. These two
+tasks are a one-function parser bug with a large test log, and a read-and-explain. That
+is in range for it. The full matrix stays on `sonnet`, so a published comparison is not
+quietly a Haiku run. The short alias `haiku` is not used: Claude Code has resolved that
+alias to Sonnet. If Haiku fails the grade, that is a result of this preset.
+
+Explicit `-n`, `-m`, `-a`, or `-t` replaces that one setting and leaves the rest of the
+preset. The report says the interval is wide: a quick check, not proof. Rows are
+`quick: true` and land in `results/quick.jsonl`.
+
+`--quick --ollama <model>` is the short local shake-out: same two tasks, 2 repeats, every
+arm except Headroom (20 sessions), no API bill, both caveats in the report.
+
 ## What you need
 
 - git
 - Python 3.10 or newer (Click 8.5.0's floor). Debian and Ubuntu also need `python3-venv`
   so `python3 -m venv` works. `python3 -m pip` is used once, to build `.cache/tool-venv`.
-- Claude Code on `PATH`, and `ANTHROPIC_API_KEY`, for any live run
+- Claude Code on `PATH` for any run that calls `claude`. `ANTHROPIC_API_KEY` for a paid run. Ollama 0.14.0 or later for `--ollama` (no API key).
 - `shellcheck` if you want `./check.sh`
 - For the RTK, Caveman, Headroom, and Ponytail arms: those tools installed, then
   `./setup_arms.sh`. Headroom also needs a proxy you start yourself (below).
@@ -98,8 +190,12 @@ From this directory:
 ./run_bench.sh --plan
 ./setup_arms.sh baseline concise          # no API key; plugin arms need their tools
 ./run_bench.sh --pilot --yes              # one billed baseline session
+./run_bench.sh --quick --yes              # 24 Haiku sessions, ceiling $120
+./run_bench.sh --ollama qwen3-coder       # local server, no API bill
 ./run_bench.sh --yes                      # the default matrix, after you mean it
 ./analyze.py results/runs.jsonl
+./analyze.py results/quick.jsonl
+./analyze.py results/local.jsonl
 ./analyze.py results/runs.jsonl --drop-first-rep
 ```
 
@@ -113,8 +209,8 @@ Useful cuts:
 ```
 
 `--fresh` truncates only the file this invocation writes (`results/runs.jsonl`,
-`results/pilot.jsonl`, or `results/dry-run.jsonl`). Raw transcripts under `results/raw/`
-are not deleted.
+`results/quick.jsonl`, `results/local.jsonl`, `results/pilot.jsonl`, or
+`results/dry-run.jsonl`). Raw transcripts under `results/raw/` are not deleted.
 
 Re-run `./setup_arms.sh <id>` after you edit that arm file. `run_bench.sh` refuses a live
 arm whose `.bench-ready` stamp does not match the script hash.
@@ -134,15 +230,16 @@ Install commands were taken from each project's docs on 2026-10-18. They live on
 | rtk | `RTK_TELEMETRY_DISABLED=1 rtk init -g --auto-patch` inside the arm home. This is the shell-output hook, not rtk-proxy and not `--hook-only`. If a newer `rtk init` offers the proxy, decline it. The binary is the Token Killer (`rtk-ai/rtk`), not the Rust Type Kit crate. `rtk gain` tells them apart. |
 | caveman | `claude plugin marketplace add JuliusBrussee/caveman` and `claude plugin install caveman@caveman`. Default level, not ultra, and not the input proxy. |
 | ponytail | `claude plugin marketplace add DietrichGebert/ponytail` and `claude plugin install ponytail@ponytail`. Default level, not ultra. The status band does not render in `claude -p`. The rules still load. |
-| headroom | Does not start a process. Install `pip install "headroom-ai[proxy]"` (the PyPI project `headroom` is a different program) and leave `headroom proxy --port 8787` running. `arm_check` requires HTTP 200 from `/health`. The arm sets `ANTHROPIC_BASE_URL` to that proxy. A custom base URL turns off MCP tool search. This bench has no MCP servers, so that confound is small here and is not small in a session that has MCP. |
+| headroom | Does not start a process. Install `pip install "headroom-ai[proxy]"` (the PyPI project `headroom` is a different program) and leave `headroom proxy --port 8787` running. `arm_check` requires HTTP 200 from `/health`. The arm sets `ANTHROPIC_BASE_URL` to that proxy. A custom base URL turns off MCP tool search. This bench has no MCP servers, so that confound is small here and is not small in a session that has MCP. `--ollama` skips this arm: two proxies cannot share one base URL. |
 
 `./setup_arms.sh` with no arguments sets up every arm. Skip the ones whose tools you do
 not have, and pass the names you do: `./setup_arms.sh baseline concise`.
 
 ## How to read results
 
-`analyze.py` pairs rows on `(task, rep)` inside a group of `(model, effort, target_commit)`.
-Efforts are not pooled. The headline number is the paired **cost ratio** against baseline:
+`analyze.py` pairs rows on `(task, rep)` inside a group of `(backend, model, effort, target_commit)`.
+A missing `backend` counts as `anthropic`. Efforts are not pooled, and a local section is
+never pooled with an Anthropic section. The headline number on an Anthropic section is the paired **cost ratio** against baseline:
 arm cost divided by baseline cost on the same task and the same repeat. The interval is a
 95 percent bootstrap of the median (5000 resamples, seed 0).
 
@@ -174,13 +271,24 @@ left out of the paired tables. Dry-run files are refused unless you pass `--allo
 A file that mixes `synthetic: true` with real rows is refused. So is a mix of dry-run and
 live rows.
 
-The markdown report repeats this decision rule at the bottom.
+A local section does not use that cost rule. Its headline is the paired total-token ratio
+(`fewer tokens`, `more tokens`, or `no token evidence`), and the report says so in the
+section. A tiny `cost_usd` on a local row is not a real saving. Cache-write and cache-read
+buckets are still printed, as raw counts, and they are not Anthropic prompt-cache accounting.
+
+A group with `quick: true` says the interval is wide. That is a check, not proof. Two
+repeats are not the five-repeat matrix.
+
+The markdown report repeats the Anthropic decision rule at the bottom, and says that rule
+does not apply to a local section.
 
 ## Results on disk
 
 | Path | What it is |
 |---|---|
-| `results/runs.jsonl` | Live matrix. One JSON object per line, schema 1. |
+| `results/runs.jsonl` | Paid matrix. One JSON object per line, schema 1. `backend` is `anthropic`. |
+| `results/quick.jsonl` | `--quick` paid preset. `quick: true`. |
+| `results/local.jsonl` | `--ollama`. `backend` is `local`. Not a cost measurement. |
 | `results/pilot.jsonl` | `--pilot` rows. |
 | `results/dry-run.jsonl` | Harness practice. `dry_run: true`. Not a measurement. |
 | `results/*.summary.md` | The report `analyze.py` writes next to that JSONL. |
@@ -265,6 +373,10 @@ reference fix passes. A task that the grader cannot fail is not a task.
   an arm file, setup must be re-run or the live harness refuses the arm. Two JSONL files
   with different hashes are not the same arm.
 - Headroom's `ANTHROPIC_BASE_URL` turns off MCP tool search. There is no MCP in this bench.
+  `--ollama` does not run Headroom, because that arm would replace the local base URL.
+- A local row can show token movement that will not survive on Claude. Different
+  tokenizer, different tool habits, no Anthropic cache TTL. Read the local section as a
+  shake-out.
 - Global `HOME` isolation can miss a config Claude reads from outside those variables.
   That has not been proven against a live binary.
 - The $5 cap and the wall timeout can cut a session short. That shows up as data
@@ -284,10 +396,15 @@ reference fix passes. A task that the grader cannot fail is not a task.
 - `shellcheck` on the harness, the arms, and the demos
 - `analyze_test.py` against `testdata/synthetic-runs.jsonl` (invented rows, `synthetic: true`)
 - the arm contract: six real arms, the template excluded, each file sets `arm_summary`
-- the cost gate: `--plan` and a live invocation without `--yes` do not execute `claude`
-  (a sentinel binary is first on `PATH`)
+- the cost gate: `--plan`, a paid invocation without `--yes`, and `--quick` without
+  `--yes` do not execute `claude` (a sentinel binary is first on `PATH`). `--plan --quick`
+  is 24 sessions of `claude-haiku-5-5` with a $120 ceiling. `--plan --ollama` skips
+  Headroom and does not apply a dollar cap. An explicit `-a headroom` with `--ollama`
+  is an error. A closed `BENCH_OLLAMA_BASE_URL` fails the health check before `claude`
+  and does not take the paid gate
 - `setup_arms.sh` for baseline and concise, twice
-- one `--dry-run`, which must grade the seeded t1 bug as `FAIL:suite` and write one JSONL row
+- one `--dry-run`, which must grade the seeded t1 bug as `FAIL:suite` and write one
+  Anthropic JSONL row, plus one `--dry-run --ollama` row tagged `backend: local`
 - `check_graders.sh`: each seeded bug fails, the reference fix passes, edited tests fail,
   a partial t3 answer fails, hidden files are not in the workdir
 
@@ -300,9 +417,11 @@ job `token-savings`). It does not run a paid bench.
 
 ## What has not been run
 
-No paid `claude -p` session has been executed for this harness. Pilot pricing, the live
-matrix, plugin install commands for RTK, Caveman, Headroom, and Ponytail, the Headroom
-proxy path, and `demos/demo_cache_expiry.sh` are untested against a real Claude Code.
+No paid `claude -p` session has been executed for this harness, and no live Ollama
+session has either. Untested against a real Claude Code or a real local model: pilot
+pricing, the full matrix, the `--quick` Haiku preset, `--ollama` end to end (the health
+check is only tested against a closed port), plugin install commands for RTK, Caveman,
+Headroom, and Ponytail, the Headroom proxy path, and `demos/demo_cache_expiry.sh`.
 `demos/demo_rtk_output.sh` needs the `rtk` binary and is not part of `./check.sh`.
 
 ## Demos

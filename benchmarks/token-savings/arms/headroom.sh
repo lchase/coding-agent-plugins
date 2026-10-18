@@ -8,6 +8,8 @@
 # run_bench.sh points ANTHROPIC_BASE_URL at the proxy. A custom base URL turns
 # off MCP tool search. This benchmark has no MCP servers, so that confound is
 # small here and is not small in a session that has MCP servers.
+# --ollama also sets ANTHROPIC_BASE_URL. The harness skips this arm in that
+# mode: two proxies, and the local server is not an Anthropic bill.
 # The proxy is started by you and left running. setup does not background it,
 # because a proxy that dies mid-matrix would bill errors and look like a result.
 

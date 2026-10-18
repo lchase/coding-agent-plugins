@@ -4,9 +4,11 @@
 #   ./run_bench.sh --plan
 #   ./run_bench.sh --pilot --yes          # one baseline session, to price the matrix
 #   ./run_bench.sh --yes -n 5             # the default matrix
+#   ./run_bench.sh --quick --yes          # two tasks, two repeats, Haiku 5.5
+#   ./run_bench.sh --ollama qwen3-coder   # local Anthropic-compatible server, no API bill
 #   ./run_bench.sh --dry-run              # harness only, claude is not called
 #
-# A live run requires --yes. Without it the script prints the ceiling and exits.
+# A paid run requires --yes. A local --ollama run does not.
 set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=lib.sh
@@ -22,35 +24,48 @@ ARMS_SEL=""
 TASKS_SEL=$TASKS
 ARMS_SET=0
 TASKS_SET=0
+REPS_SET=0
+MODEL_SET=0
 PILOT=0
 YES=0
 PLAN=0
 DRY=0
 FRESH=0
+QUICK=0
+OLLAMA_SET=0
+OLLAMA_MODEL=""
+SKIP_HEADROOM=0
 
 usage() {
   cat <<EOF
-Usage: ./run_bench.sh [--yes] [--pilot] [--plan] [--dry-run] [--fresh]
+Usage: ./run_bench.sh [--yes] [--pilot] [--quick] [--plan] [--dry-run] [--fresh]
+                      [--ollama MODEL]
                       [-n REPS] [-m MODEL] [-e EFFORT]
                       [-a "arm ..."] [-t "task ..."]
                       [--max-turns N] [--max-budget-usd N] [--wall-timeout SECONDS]
 
 Default matrix: $(echo "$TASKS" | wc -w | tr -d ' ') tasks x every arm under arms/ x $DEFAULT_REPS repeats.
 --pilot prices a single baseline session (first task, one repeat) and writes results/pilot.jsonl.
+--quick is a cheap paid preset: tasks $QUICK_TASKS, $QUICK_REPS repeats, model $QUICK_MODEL.
+  Explicit -n, -m, -a, or -t overrides that one setting. It still requires --yes.
+--ollama MODEL points Claude Code at a local Anthropic-compatible server (Ollama v0.14.0+).
+  No API key and no --yes. Headroom is skipped, because it is itself a proxy.
+  Writes results/local.jsonl. Not a cost or prompt-cache measurement.
 --plan prints the matrix and exits. It does not need an API key.
 --dry-run prepares a real worktree and grades it, but does not call claude.
---yes is required for any run that calls claude.
+--yes is required for any paid run. It is not required for --ollama.
 --fresh truncates the destination JSONL before appending.
 
-Each session is capped at --max-budget-usd (default $DEFAULT_MAX_BUDGET_USD) and --max-turns (default $DEFAULT_MAX_TURNS).
+Each paid session is capped at --max-budget-usd (default $DEFAULT_MAX_BUDGET_USD) and --max-turns (default $DEFAULT_MAX_TURNS).
+A local run does not pass --max-budget-usd. Turns and the wall clock still apply.
 The wall clock cap defaults to ${DEFAULT_WALL_TIMEOUT}s. Pass --wall-timeout 0 to disable it.
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    -n|--reps) REPS=$2; shift 2 ;;
-    -m|--model) MODEL=$2; shift 2 ;;
+    -n|--reps) REPS=$2; REPS_SET=1; shift 2 ;;
+    -m|--model) MODEL=$2; MODEL_SET=1; shift 2 ;;
     -e|--effort) EFFORT=$2; shift 2 ;;
     -a|--arms) ARMS_SEL=$2; ARMS_SET=1; shift 2 ;;
     -t|--tasks) TASKS_SEL=$2; TASKS_SET=1; shift 2 ;;
@@ -58,6 +73,13 @@ while [[ $# -gt 0 ]]; do
     --max-budget-usd) MAX_BUDGET=$2; shift 2 ;;
     --wall-timeout) WALL_TIMEOUT=$2; shift 2 ;;
     --pilot) PILOT=1; shift ;;
+    --quick) QUICK=1; shift ;;
+    --ollama)
+      [[ $# -ge 2 ]] || die "--ollama needs a model name, for example: --ollama qwen3-coder"
+      OLLAMA_MODEL=$2
+      OLLAMA_SET=1
+      shift 2
+      ;;
     --yes) YES=1; shift ;;
     --plan) PLAN=1; shift ;;
     --dry-run) DRY=1; shift ;;
@@ -72,6 +94,44 @@ done
 [[ $MAX_BUDGET =~ ^[0-9]+([.][0-9]+)?$ ]] || die "max-budget-usd must be a number"
 [[ $WALL_TIMEOUT =~ ^[0-9]+$ ]] || die "wall-timeout must be a whole number of seconds (0 disables it)"
 
+ollama_base_url() {
+  local raw=${BENCH_OLLAMA_BASE_URL:-}
+  if [[ -z $raw && -n ${OLLAMA_HOST:-} ]]; then
+    raw=$OLLAMA_HOST
+  fi
+  if [[ -z $raw ]]; then
+    raw=$DEFAULT_OLLAMA_BASE
+  fi
+  if [[ $raw != http://* && $raw != https://* ]]; then
+    raw="http://${raw}"
+  fi
+  raw=${raw%/}
+  printf '%s\n' "$raw"
+}
+
+if [[ $OLLAMA_SET -eq 1 ]]; then
+  [[ -n $OLLAMA_MODEL ]] || die "--ollama needs a model name, for example: --ollama qwen3-coder"
+  if [[ $MODEL_SET -eq 1 ]]; then
+    die "--ollama ${OLLAMA_MODEL} conflicts with -m ${MODEL}. The name after --ollama is the model."
+  fi
+  MODEL=$OLLAMA_MODEL
+fi
+if [[ $QUICK -eq 1 && $PILOT -eq 1 ]]; then
+  die "--quick and --pilot ask for different matrices. Pick one."
+fi
+if [[ $QUICK -eq 1 ]]; then
+  if [[ $REPS_SET -eq 0 ]]; then
+    REPS=$QUICK_REPS
+  fi
+  if [[ $TASKS_SET -eq 0 ]]; then
+    TASKS_SEL=$QUICK_TASKS
+    TASKS_SET=1
+  fi
+  if [[ $MODEL_SET -eq 0 && $OLLAMA_SET -eq 0 ]]; then
+    MODEL=$QUICK_MODEL
+  fi
+fi
+
 if [[ $PILOT -eq 1 ]]; then
   REPS=1
   if [[ $ARMS_SET -eq 0 ]]; then
@@ -84,7 +144,7 @@ if [[ $PILOT -eq 1 ]]; then
   fi
 fi
 
-if [[ $DRY -eq 1 && $PILOT -eq 0 && $ARMS_SET -eq 0 && $TASKS_SET -eq 0 && $REPS -eq "$DEFAULT_REPS" ]]; then
+if [[ $DRY -eq 1 && $QUICK -eq 0 && $PILOT -eq 0 && $ARMS_SET -eq 0 && $TASKS_SET -eq 0 && $REPS -eq "$DEFAULT_REPS" ]]; then
   # A bare --dry-run checks one injected bug. Pass -n/-a/-t to widen it.
   REPS=1
   ARMS_SEL=baseline
@@ -106,6 +166,30 @@ TASK_ARR=($TASKS_SEL)
 ((${#ARM_ARR[@]} > 0)) || die "no arms selected"
 ((${#TASK_ARR[@]} > 0)) || die "no tasks selected"
 
+if [[ $OLLAMA_SET -eq 1 ]]; then
+  headroom_selected=0
+  for id in "${ARM_ARR[@]}"; do
+    if [[ $id == headroom ]]; then
+      headroom_selected=1
+    fi
+  done
+  if [[ $headroom_selected -eq 1 && $ARMS_SET -eq 1 ]]; then
+    die "headroom is skipped with --ollama. Headroom is itself a proxy: it sets ANTHROPIC_BASE_URL, and a custom base URL disables MCP tool search. Local mode already points that variable at Ollama. Drop headroom from -a."
+  fi
+  if [[ $headroom_selected -eq 1 ]]; then
+    declare -a filtered=()
+    for id in "${ARM_ARR[@]}"; do
+      if [[ $id == headroom ]]; then
+        continue
+      fi
+      filtered+=("$id")
+    done
+    ARM_ARR=("${filtered[@]}")
+    SKIP_HEADROOM=1
+  fi
+  ((${#ARM_ARR[@]} > 0)) || die "no arms left after skipping headroom"
+fi
+
 for id in "${ARM_ARR[@]}"; do
   valid_id "$id" || die "bad arm id: $id"
   [[ -f $(arm_file "$id") ]] || die "no arm file for $id"
@@ -124,22 +208,58 @@ default_sessions=$(( default_tasks * default_arms * DEFAULT_REPS ))
 default_ceiling=$(python3 -c 'import sys; print(f"{float(sys.argv[1]) * int(sys.argv[2]):.2f}")' "$DEFAULT_MAX_BUDGET_USD" "$default_sessions")
 
 mode=live
-if [[ $DRY -eq 1 ]]; then
+if [[ $DRY -eq 1 && $OLLAMA_SET -eq 1 ]]; then
+  mode=local-dry-run
+elif [[ $DRY -eq 1 ]]; then
   mode=dry-run
+elif [[ $OLLAMA_SET -eq 1 && $QUICK -eq 1 ]]; then
+  mode=local-quick
+elif [[ $OLLAMA_SET -eq 1 ]]; then
+  mode=local
 elif [[ $PILOT -eq 1 ]]; then
   mode=pilot
+elif [[ $QUICK -eq 1 ]]; then
+  mode=quick
+fi
+
+OLLAMA_BASE=""
+BACKEND=anthropic
+if [[ $OLLAMA_SET -eq 1 ]]; then
+  OLLAMA_BASE=$(ollama_base_url)
+  BACKEND=local
 fi
 
 print_plan() {
   printf 'mode: %s\n' "$mode"
+  if [[ $OLLAMA_SET -eq 1 ]]; then
+    printf 'backend: local\n'
+    printf 'ollama base: %s\n' "$OLLAMA_BASE"
+  else
+    printf 'backend: anthropic\n'
+  fi
+  if [[ $QUICK -eq 1 ]]; then
+    printf 'preset: quick\n'
+  fi
   printf 'model: %s\n' "$MODEL"
   printf 'effort: %s\n' "$EFFORT"
   printf 'reps: %s\n' "$REPS"
   printf 'tasks (%s): %s\n' "${#TASK_ARR[@]}" "${TASK_ARR[*]}"
   printf 'arms (%s): %s\n' "${#ARM_ARR[@]}" "${ARM_ARR[*]}"
+  if [[ $SKIP_HEADROOM -eq 1 ]]; then
+    printf 'skipping headroom: it is a proxy, and --ollama already sets ANTHROPIC_BASE_URL. Pass -a without headroom to silence this, or do not combine them.\n'
+  fi
   printf 'sessions: %s\n' "$sessions"
-  printf 'per-session cap: $%s\n' "$MAX_BUDGET"
-  printf 'hard ceiling for this selection: $%s\n' "$ceiling"
+  if [[ $OLLAMA_SET -eq 1 ]]; then
+    printf 'dollar cap: not applied (local backend, no Anthropic bill)\n'
+    printf 'local caveat: harness shake-out and rough raw-token deltas only. Not a cost result. Not a prompt-cache result.\n'
+  else
+    printf 'per-session cap: $%s\n' "$MAX_BUDGET"
+    printf 'hard ceiling for this selection: $%s\n' "$ceiling"
+  fi
+  if [[ $QUICK -eq 1 && $OLLAMA_SET -eq 0 ]]; then
+    printf 'quick check: %s sessions, hard ceiling $%s. Few repeats, so the interval will be wide. This is a check, not proof.\n' \
+      "$sessions" "$ceiling"
+  fi
   printf 'default full matrix: %s tasks x %s arms x %s reps = %s sessions, ceiling $%s at $%s each\n' \
     "$default_tasks" "$default_arms" "$DEFAULT_REPS" "$default_sessions" "$default_ceiling" "$DEFAULT_MAX_BUDGET_USD"
   printf 'wall timeout per session: %ss\n' "$WALL_TIMEOUT"
@@ -151,32 +271,71 @@ if [[ $PLAN -eq 1 ]]; then
   exit 0
 fi
 
-if [[ $DRY -eq 0 && $YES -eq 0 ]]; then
+if [[ $DRY -eq 0 && $OLLAMA_SET -eq 0 && $YES -eq 0 ]]; then
   cat <<EOF >&2
 
-This would call Claude Code ${sessions} time(s). Each call is capped at \$${MAX_BUDGET}, so the hard ceiling is \$${ceiling}.
+This would call Claude Code ${sessions} time(s) against the Anthropic API. Each call is capped at \$${MAX_BUDGET}, so the hard ceiling is \$${ceiling}.
 That ceiling is a cap, not a price. Tasks and arms do not cost the same. Price one session first:
 
   ./run_bench.sh --pilot --yes
 
-Then start the selection you actually want:
+Or run the cheap preset (still billed, still needs --yes):
 
-  ./run_bench.sh --yes
+  ./run_bench.sh --quick --yes
+
+A local model does not use this gate:
+
+  ./run_bench.sh --ollama qwen3-coder
 
 Nothing was sent. No API key was required for this message.
 EOF
   exit 2
 fi
 
-if [[ $DRY -eq 0 ]]; then
+if [[ $DRY -eq 0 && $OLLAMA_SET -eq 1 ]]; then
+  command -v claude >/dev/null 2>&1 || die "claude is not on PATH"
+  python3 - "$OLLAMA_BASE" "$MODEL" <<'PY' || die "Ollama health check failed"
+import json, sys, urllib.request
+base, model = sys.argv[1], sys.argv[2]
+url = base + "/api/tags"
+try:
+    with urllib.request.urlopen(url, timeout=3) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+except Exception as exc:
+    sys.stderr.write(
+        f"Ollama is not reachable at {base} ({exc}). Start it with: ollama serve\n"
+        "Then pull a model, for example: ollama pull qwen3-coder\n"
+        "Override the URL with BENCH_OLLAMA_BASE_URL or OLLAMA_HOST.\n"
+        "Connection docs: https://docs.ollama.com/integrations/claude-code\n"
+    )
+    sys.exit(1)
+names = [item.get("name") or "" for item in (payload.get("models") or []) if isinstance(item, dict)]
+wanted = {model, model + ":latest"}
+if model.endswith(":latest"):
+    wanted.add(model[: -len(":latest")])
+if not any(name in wanted for name in names):
+    listed = ", ".join(names) if names else "(none)"
+    sys.stderr.write(
+        f"Ollama at {base} does not list {model}. Pulled models: {listed}\n"
+        f"Pull it with: ollama pull {model}\n"
+    )
+    sys.exit(1)
+PY
+fi
+
+if [[ $DRY -eq 0 && $OLLAMA_SET -eq 0 ]]; then
   [[ -n ${ANTHROPIC_API_KEY:-} ]] || die "ANTHROPIC_API_KEY is required. An API key makes total_cost_usd list price and the prompt-cache TTL 5 minutes. A subscription run is a different measurement."
   command -v claude >/dev/null 2>&1 || die "claude is not on PATH"
 fi
 
-if [[ $DRY -eq 1 ]]; then
+if [[ $OLLAMA_SET -eq 1 ]]; then
+  out_jsonl="$RESULTS/local.jsonl"
+elif [[ $DRY -eq 1 ]]; then
   out_jsonl="$RESULTS/dry-run.jsonl"
 elif [[ $PILOT -eq 1 ]]; then
   out_jsonl="$RESULTS/pilot.jsonl"
+elif [[ $QUICK -eq 1 ]]; then
+  out_jsonl="$RESULTS/quick.jsonl"
 else
   out_jsonl="$RESULTS/runs.jsonl"
 fi
@@ -253,15 +412,19 @@ run_one() {
   }
   trap cleanup_wd RETURN
   wd=$(make_workdir "$task")
-  raw="$RESULTS/raw/${task}.${arm}.${rep}.json"
-  err="${raw}.err"
-  if [[ $DRY -eq 1 ]]; then
-    raw="$RESULTS/raw/dry-${task}.${arm}.${rep}.json"
-    err="${raw}.err"
-  elif [[ $PILOT -eq 1 ]]; then
-    raw="$RESULTS/raw/pilot-${task}.${arm}.${rep}.json"
-    err="${raw}.err"
+  raw_prefix=""
+  if [[ $OLLAMA_SET -eq 1 ]]; then
+    raw_prefix="local-"
   fi
+  if [[ $DRY -eq 1 ]]; then
+    raw_prefix="${raw_prefix}dry-"
+  elif [[ $PILOT -eq 1 ]]; then
+    raw_prefix="${raw_prefix}pilot-"
+  elif [[ $QUICK -eq 1 && $OLLAMA_SET -eq 0 ]]; then
+    raw_prefix="${raw_prefix}quick-"
+  fi
+  raw="$RESULTS/raw/${raw_prefix}${task}.${arm}.${rep}.json"
+  err="${raw}.err"
   mkdir -p "$RESULTS/raw"
   home=$(arm_home "$arm")
   t0=$(python3 -c 'import time; print(f"{time.time():.3f}")')
@@ -284,6 +447,17 @@ run_one() {
       exit 86
     fi
     arm_env
+    if [[ $OLLAMA_SET -eq 1 ]]; then
+      # Official Ollama connection (v0.14.0+): base URL, ignored token, empty API key.
+      # Tier variables keep an internal sonnet/haiku/opus request on this model.
+      # Set after arm_env so a plugin cannot point the session back at Anthropic.
+      export ANTHROPIC_BASE_URL="$OLLAMA_BASE"
+      export ANTHROPIC_AUTH_TOKEN=ollama
+      export ANTHROPIC_API_KEY=
+      export ANTHROPIC_DEFAULT_SONNET_MODEL="$MODEL"
+      export ANTHROPIC_DEFAULT_HAIKU_MODEL="$MODEL"
+      export ANTHROPIC_DEFAULT_OPUS_MODEL="$MODEL"
+    fi
     if [[ $DRY -eq 1 ]]; then
       python3 -c 'import json,sys; json.dump({"dry_run": True, "total_cost_usd": 0, "num_turns": 0, "is_error": False, "usage": {"input_tokens": 0, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0, "output_tokens": 0}, "result": "dry-run: claude was not invoked"}, sys.stdout)'
       exit 0
@@ -295,8 +469,10 @@ run_one() {
       --output-format json
       --no-session-persistence
       --permission-mode bypassPermissions
-      --max-turns "$MAX_TURNS"
-      --max-budget-usd "$MAX_BUDGET")
+      --max-turns "$MAX_TURNS")
+    if [[ $OLLAMA_SET -eq 0 ]]; then
+      cmd+=(--max-budget-usd "$MAX_BUDGET")
+    fi
     if [[ $WALL_TIMEOUT != 0 ]] && command -v timeout >/dev/null 2>&1; then
       cmd=(timeout --signal=TERM "$WALL_TIMEOUT" "${cmd[@]}")
     fi
@@ -330,6 +506,9 @@ run_one() {
   BENCH_T0="$t0" \
   BENCH_T1="$t1" \
   BENCH_EXIT_CODE="$status" \
+  BENCH_BACKEND="$BACKEND" \
+  BENCH_QUICK="$QUICK" \
+  BENCH_OLLAMA_BASE="$OLLAMA_BASE" \
   BENCH_DRY_RUN="$DRY" \
   BENCH_PILOT="$PILOT" \
   BENCH_TIMED_OUT="$timed_out" \

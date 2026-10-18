@@ -42,6 +42,14 @@ Cache writes moving up means something rewrote the cached prefix. Cost can rise 
 Compare a terse-output arm with the built-in concise arm as well as with baseline. A plugin that does not beat the free output style is not earning its install.
 """.rstrip()
 
+LOCAL_CAVEAT = """\
+Local backend (Ollama or another Anthropic-compatible server). Use these rows for harness shake-out and for rough raw-token deltas, including tool-output and terse-output plugins. This is not a cost result and not a prompt-cache result. There is no Anthropic cache billing and no 5-minute TTL here. The tokenizer and the agent behavior are not Claude's.
+""".rstrip()
+
+QUICK_NOTE = (
+    "Quick preset: few repeats, so the interval is wide. This is a check, not proof."
+)
+
 
 def iso_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -151,6 +159,24 @@ def _first_number(mapping, keys):
     return None
 
 
+def _backend(meta: dict) -> str:
+    value = meta.get("backend") or "anthropic"
+    if value not in ("anthropic", "local"):
+        return "anthropic"
+    return value
+
+
+def _ollama_base(meta: dict) -> str | None:
+    if _backend(meta) != "local":
+        return None
+    raw = str(meta.get("ollama_base_url") or "").strip()
+    if not raw:
+        return None
+    if "@" in raw:
+        return "[REDACTED]"
+    return raw
+
+
 def build_record(meta: dict, raw_text: str, *, secret: str | None = None, stderr_text: str = "") -> dict:
     raw = redact_obj(parse_claude_output(raw_text), secret)
     usage = extract_usage(raw)
@@ -181,6 +207,9 @@ def build_record(meta: dict, raw_text: str, *, secret: str | None = None, stderr
     return {
         "schema": SCHEMA,
         "synthetic": False,
+        "backend": _backend(meta),
+        "quick": bool(meta.get("quick")),
+        "ollama_base_url": _ollama_base(meta),
         "dry_run": bool(meta.get("dry_run")),
         "pilot": bool(meta.get("pilot")),
         "timed_out": bool(meta.get("timed_out")),
@@ -287,13 +316,13 @@ def bootstrap_median_ci(values: list[float], n: int = BOOTSTRAP_N, seed: int = B
     return float(medians[lo_i]), float(medians[hi_i])
 
 
-def _paired_ratios(arm_rows: list[dict], base_by_key: dict, value_fn) -> list[float]:
+def _paired_ratios(arm_rows: list[dict], base_by_key: dict, value_fn, *, require_cost: bool = True) -> list[float]:
     ratios = []
     for row in arm_rows:
-        if not _billed(row):
+        if require_cost and not _billed(row):
             continue
         base = base_by_key.get((row.get("task"), row.get("rep")))
-        if base is None or not _billed(base):
+        if base is None or (require_cost and not _billed(base)):
             continue
         base_value = value_fn(base)
         arm_value = value_fn(row)
@@ -311,6 +340,27 @@ def _ratio_summary(values: list[float]) -> dict | None:
     if ci is not None:
         summary["lo"], summary["hi"] = ci
     return summary
+
+
+def _label_local(token_summary: dict | None, regressions: int) -> str:
+    """Token-only label. A local dollar figure is not a cost result."""
+    if token_summary is None or token_summary["n"] < 2 or token_summary["lo"] is None:
+        if regressions:
+            return "pass rate dropped, too few pairs"
+        return "too few pairs"
+    lo = token_summary["lo"]
+    hi = token_summary["hi"]
+    if regressions:
+        if hi < 1:
+            return "fewer tokens, pass rate dropped"
+        if lo > 1:
+            return "more tokens, pass rate dropped"
+        return "no token evidence, pass rate dropped"
+    if hi < 1:
+        return "fewer tokens"
+    if lo > 1:
+        return "more tokens"
+    return "no token evidence"
 
 
 def _label(cost_summary: dict | None, regressions: int) -> str:
@@ -333,9 +383,16 @@ def _label(cost_summary: dict | None, regressions: int) -> str:
     return "no evidence"
 
 
-def _arm_stats(arm: str, rows: list[dict], base_rows: list[dict] | None, *, is_baseline: bool = False) -> dict:
+def _arm_stats(
+    arm: str,
+    rows: list[dict],
+    base_rows: list[dict] | None,
+    *,
+    is_baseline: bool = False,
+    local: bool = False,
+) -> dict:
     passed = sum(1 for row in rows if row.get("pass") is True)
-    costs = [float(row["cost_usd"]) for row in rows if _billed(row)]
+    costs = [] if local else [float(row["cost_usd"]) for row in rows if _billed(row)]
     stats = {
         "arm": arm,
         "n": len(rows),
@@ -350,6 +407,7 @@ def _arm_stats(arm: str, rows: list[dict], base_rows: list[dict] | None, *, is_b
             [float(row["wall_s"]) for row in rows if isinstance(row.get("wall_s"), (int, float))]
         ),
         "label": "baseline" if is_baseline else "no baseline",
+        "cost_conclusions": not local,
         "pass_regressions": 0,
         "tokens_down": False,
         "tokens_down_cost_flat": False,
@@ -370,7 +428,6 @@ def _arm_stats(arm: str, rows: list[dict], base_rows: list[dict] | None, *, is_b
         base = base_by_key.get((row.get("task"), row.get("rep")))
         if base is not None and base.get("pass") is True and row.get("pass") is not True:
             regressions += 1
-    cost = _ratio_summary(_paired_ratios(rows, base_by_key, lambda row: float(row["cost_usd"])))
     fields = {
         "input": lambda row: float(row.get("input") or 0),
         "cache_write": lambda row: float(row.get("cache_write") or 0),
@@ -378,6 +435,31 @@ def _arm_stats(arm: str, rows: list[dict], base_rows: list[dict] | None, *, is_b
         "output": lambda row: float(row.get("output") or 0),
         "tokens": _tokens,
     }
+    if local:
+        paired = {
+            name: _ratio_summary(_paired_ratios(rows, base_by_key, fn, require_cost=False))
+            for name, fn in fields.items()
+        }
+        label = _label_local(paired["tokens"], regressions)
+        tokens = paired["tokens"]
+        stats.update(
+            {
+                "label": label,
+                "pass_regressions": regressions,
+                "tokens_down": False,
+                "tokens_down_cost_flat": False,
+                "output_down_cost_flat": False,
+                "cache_writes_up": False,
+                "cost": None,
+                "input": paired["input"],
+                "cache_write": paired["cache_write"],
+                "cache_read": paired["cache_read"],
+                "output": paired["output"],
+                "tokens": tokens,
+            }
+        )
+        return stats
+    cost = _ratio_summary(_paired_ratios(rows, base_by_key, lambda row: float(row["cost_usd"])))
     paired = {name: _ratio_summary(_paired_ratios(rows, base_by_key, fn)) for name, fn in fields.items()}
     label = _label(cost, regressions)
     tokens = paired["tokens"]
@@ -409,6 +491,8 @@ def _notes(stats: dict) -> str:
     if stats["label"] == "baseline":
         return ""
     parts = [stats["label"]]
+    if not stats.get("cost_conclusions", True):
+        return "; ".join(parts)
     if stats["tokens_down_cost_flat"]:
         parts.append("tokens down, cost flat")
     elif stats["tokens_down"] and stats["label"] != "real saving":
@@ -461,9 +545,20 @@ def summarize(
             continue
         kept.append(row)
 
+    backends = {(row.get("backend") or "anthropic") for row in kept}
+    if "local" in backends and "anthropic" in backends:
+        warnings.append(
+            "This file mixes local and Anthropic rows. They are separate sections. Do not compare their costs or cache buckets."
+        )
+
     groups_map: dict[tuple, list] = defaultdict(list)
     for row in kept:
-        key = (row.get("model"), row.get("effort"), row.get("target_commit"))
+        key = (
+            row.get("backend") or "anthropic",
+            row.get("model"),
+            row.get("effort"),
+            row.get("target_commit"),
+        )
         groups_map[key].append(row)
 
     groups = []
@@ -484,9 +579,12 @@ def summarize(
             if dup:
                 warnings.append(f"duplicate rows for arm {arm}; kept the last row per task and repeat")
             by_arm[arm] = list(seen.values())
+        local = key[0] == "local"
         base_rows = by_arm.get(baseline)
         if base_rows is None:
-            warnings.append(f"no {baseline!r} rows for model={key[0]!r} effort={key[1]!r}")
+            warnings.append(
+                f"no {baseline!r} rows for backend={key[0]!r} model={key[1]!r} effort={key[2]!r}"
+            )
         names = _arm_order(list(by_arm), baseline)
         arms = {}
         for name in names:
@@ -495,6 +593,7 @@ def summarize(
                 by_arm[name],
                 None if name == baseline else base_rows,
                 is_baseline=name == baseline,
+                local=local,
             )
         tasks = sorted({row.get("task") for row in group_rows})
         per_task = []
@@ -511,9 +610,11 @@ def summarize(
             per_task.append({"task": task, "arms": cells})
         groups.append(
             {
-                "model": key[0],
-                "effort": key[1],
-                "target_commit": key[2],
+                "backend": key[0],
+                "model": key[1],
+                "effort": key[2],
+                "target_commit": key[3],
+                "quick": any(row.get("quick") is True for row in group_rows),
                 "arm_order": names,
                 "arms": arms,
                 "per_task": per_task,
@@ -598,30 +699,53 @@ def render_markdown(summary: dict, *, source: str) -> str:
         lines.append(HOW_TO_READ)
         return "\n".join(lines) + "\n"
 
+    any_local = any(group.get("backend") == "local" for group in summary["groups"])
     for group in summary["groups"]:
+        local = group.get("backend") == "local"
         commit = group["target_commit"] or "unknown"
         short = commit[:12] if isinstance(commit, str) else commit
         lines.append("")
         lines.append(
-            f"## model `{group['model']}` / effort `{group['effort']}` / target `{short}`"
+            f"## {group.get('backend') or 'anthropic'} / model `{group['model']}` / effort `{group['effort']}` / target `{short}`"
         )
         lines.append("")
-        headers = ["arm", "n", "passed", "median USD", "paired cost ratio vs baseline", "notes"]
+        if local:
+            lines.append(LOCAL_CAVEAT)
+            lines.append("")
+        if group.get("quick"):
+            lines.append(QUICK_NOTE)
+            lines.append("")
+        if local:
+            headers = ["arm", "n", "passed", "paired token ratio vs baseline", "notes"]
+        else:
+            headers = ["arm", "n", "passed", "median USD", "paired cost ratio vs baseline", "notes"]
         table = []
         bucket_headers = ["arm", "fresh", "cache write", "cache read", "output", "fresh ratio", "write ratio", "read ratio", "output ratio"]
         buckets = []
         for name in group["arm_order"]:
             stats = group["arms"][name]
-            table.append(
-                [
-                    name,
-                    str(stats["n"]),
-                    f"{stats['passed']}/{stats['n']}",
-                    _fmt_money(stats["median_cost"]),
-                    "-" if name == summary["baseline"] else _fmt_ratio(stats["cost"]),
-                    _notes(stats) or "-",
-                ]
-            )
+            if local:
+                ratio = "-" if name == summary["baseline"] else _fmt_ratio(stats["tokens"])
+                table.append(
+                    [
+                        name,
+                        str(stats["n"]),
+                        f"{stats['passed']}/{stats['n']}",
+                        ratio,
+                        _notes(stats) or "-",
+                    ]
+                )
+            else:
+                table.append(
+                    [
+                        name,
+                        str(stats["n"]),
+                        f"{stats['passed']}/{stats['n']}",
+                        _fmt_money(stats["median_cost"]),
+                        "-" if name == summary["baseline"] else _fmt_ratio(stats["cost"]),
+                        _notes(stats) or "-",
+                    ]
+                )
             buckets.append(
                 [
                     name,
@@ -637,17 +761,25 @@ def render_markdown(summary: dict, *, source: str) -> str:
             )
         lines.append(_markdown_table(headers, table))
         lines.append("")
-        lines.append("Median token buckets, and the paired ratio of each bucket against baseline:")
+        if local:
+            lines.append(
+                "Median token buckets. On a local backend these ratios are raw token counts, not a bill and not Anthropic prompt-cache accounting:"
+            )
+        else:
+            lines.append("Median token buckets, and the paired ratio of each bucket against baseline:")
         lines.append("")
         lines.append(_markdown_table(bucket_headers, buckets))
         if "concise" in group["arms"] and summary["baseline"] != "concise":
             lines.append("")
-            lines.append("Paired cost ratio against the `concise` arm (the built-in output style):")
+            if local:
+                lines.append("Paired token ratio against the `concise` arm (the built-in output style):")
+            else:
+                lines.append("Paired cost ratio against the `concise` arm (the built-in output style):")
             lines.append("")
             concise_rows_note = []
             # Recompute from stored cost ratios is not possible; the renderer only has arm stats
             # versus baseline. The versus-concise ratios are attached when present.
-            headers2 = ["arm", "paired cost ratio vs concise"]
+            headers2 = ["arm", "paired token ratio vs concise" if local else "paired cost ratio vs concise"]
             rows2 = []
             for name in group["arm_order"]:
                 if name in (summary["baseline"], "concise"):
@@ -659,10 +791,16 @@ def render_markdown(summary: dict, *, source: str) -> str:
             if rows2:
                 lines.append(_markdown_table(headers2, rows2))
             else:
-                concise_rows_note.append("No second arm had a billed pair against concise.")
+                if local:
+                    concise_rows_note.append("No second arm had a token pair against concise.")
+                else:
+                    concise_rows_note.append("No second arm had a billed pair against concise.")
                 lines.extend(concise_rows_note)
         lines.append("")
-        lines.append("Per task: median USD and how many runs passed.")
+        if local:
+            lines.append("Per task: how many runs passed. Dollar figures are not reported for a local backend.")
+        else:
+            lines.append("Per task: median USD and how many runs passed.")
         lines.append("")
         task_headers = ["task", *group["arm_order"]]
         task_rows = []
@@ -672,28 +810,37 @@ def render_markdown(summary: dict, *, source: str) -> str:
                 cell = task["arms"].get(name) or {"n": 0, "passed": 0, "median_cost": None}
                 if cell["n"] == 0:
                     cells.append("-")
+                elif local:
+                    cells.append(f"{cell['passed']}/{cell['n']}")
                 else:
                     cells.append(f"{_fmt_money(cell['median_cost'])} {cell['passed']}/{cell['n']}")
             task_rows.append(cells)
         lines.append(_markdown_table(task_headers, task_rows))
 
     lines.append("")
+    if any_local:
+        lines.append("The cost rule below applies to Anthropic sections. It does not apply to a local section.")
+        lines.append("")
     lines.append(HOW_TO_READ)
     return "\n".join(lines) + "\n"
 
 
 def _attach_versus_concise(summary: dict, rows: list[dict]) -> None:
-    """Fill versus_concise from billed rows. summarize_and_attach invokes this."""
+    """Fill versus_concise. Cost for Anthropic rows, total tokens for local rows."""
     billed_rows = [row for row in rows if row.get("pilot") is not True and _billed(row)]
     if summary.get("drop_first_rep"):
         billed_rows = [row for row in billed_rows if row.get("rep") != 1]
+        rows = [row for row in rows if row.get("rep") != 1]
     for group in summary["groups"]:
         if "concise" not in group["arms"]:
             continue
+        local = group.get("backend") == "local"
+        pool = rows if local else billed_rows
         matching = [
             row
-            for row in billed_rows
-            if row.get("model") == group["model"]
+            for row in pool
+            if (row.get("backend") or "anthropic") == group.get("backend")
+            and row.get("model") == group["model"]
             and row.get("effort") == group["effort"]
             and row.get("target_commit") == group["target_commit"]
         ]
@@ -705,7 +852,12 @@ def _attach_versus_concise(summary: dict, rows: list[dict]) -> None:
         for name, stats in group["arms"].items():
             if name in (summary["baseline"], "concise"):
                 continue
-            ratios = _paired_ratios(by_arm.get(name) or [], concise_by_key, lambda row: float(row["cost_usd"]))
+            if local:
+                ratios = _paired_ratios(by_arm.get(name) or [], concise_by_key, _tokens, require_cost=False)
+            else:
+                ratios = _paired_ratios(
+                    by_arm.get(name) or [], concise_by_key, lambda row: float(row["cost_usd"])
+                )
             stats["versus_concise"] = _ratio_summary(ratios)
 
 
