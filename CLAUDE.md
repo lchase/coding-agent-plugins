@@ -58,18 +58,24 @@ package of independently-installable plugins:
    `skills/factory/SKILL.md`, a stage in its agent file, and keep `repo.md`'s section names
    stable because agents look them up by heading. Own version in
    `plugins/factory/.claude-plugin/plugin.json`. Usage guide: `plugins/factory/README.md`.
+5. **token-savings** (`benchmarks/token-savings/`) is not a plugin. It is a community-runnable
+   benchmark of Claude Code token and cost claims against pallets/click 8.5.0. Click is
+   fetched at a pinned commit, not vendored. Offline checks are `./benchmarks/token-savings/check.sh`.
+   A paid `claude -p` run is never part of those checks.
 
 There is no application build. smart-review is markdown plus a small TypeScript eval
 harness; tldraw is markdown plus one Node script. **Most of this file is about smart-review.**
 
 ## Commands
 
-Validate before pushing (no CI configured, so do this manually):
+Validate before pushing. `.github/workflows/pr-checks.yml` runs the adapter, redactor,
+version, and token-savings checks on pull requests:
 
 ```bash
 claude plugin validate .                                 # marketplace + both plugins
 ./plugins/smart-review/scripts/validate-adapters.sh       # smart-review manifests: JSON, version match, resolvable paths, agent-lens sync
 node plugins/test-drive/scripts/redact.test.mjs           # test-drive redactor regression check
+./benchmarks/token-savings/check.sh                       # shellcheck, grader, synthetic summary; no API spend
 ```
 
 Bump smart-review's version across all its manifests at once (does not touch tldraw):
@@ -125,6 +131,11 @@ plugins/smart-review/                # PLUGIN 1, multi-harness code review
   scripts/{validate-adapters.sh,bump-version.sh}
   evals/                             # dev-only eval kit; excluded from what installers pull
   SMART-REVIEW.md                    # the design writeup
+
+benchmarks/token-savings/            # community benchmark, not a marketplace plugin
+  arms/*.sh                          # one file per arm; _template.sh is not an arm
+  tasks/ patches/ hidden/            # prompts, seeded bugs, grader-only material
+  results/README.md                  # runs.jsonl is gitignored; the convention is documented
 
 plugins/tldraw/                      # PLUGIN 2, Claude Code only, self-contained
   .claude-plugin/plugin.json         # own manifest, own version

@@ -1,0 +1,44 @@
+diff --git a/src/click/__init__.py b/src/click/__init__.py
+index a34ab02..628a532 100644
+--- a/src/click/__init__.py
++++ b/src/click/__init__.py
+@@ -71,6 +71,7 @@ from .utils import echo as echo
+ from .utils import format_filename as format_filename
+ from .utils import get_app_dir as get_app_dir
+ from .utils import open_file as open_file
++from .utils import pluralize as pluralize
+ 
+ 
+ def __getattr__(name: str) -> object:
+diff --git a/src/click/utils.py b/src/click/utils.py
+index b529eb0..6fa0106 100644
+--- a/src/click/utils.py
++++ b/src/click/utils.py
+@@ -666,6 +666,27 @@ def _expand_args(
+     return out
+ 
+ 
++
++def pluralize(count: int, singular: str, plural: str | None = None) -> str:
++    """Return a count plus the singular or plural form of a word.
++
++    ``pluralize(1, "file")`` is ``"1 file"``. ``pluralize(2, "file")`` is
++    ``"2 files"``. ``pluralize(0, "file")`` is ``"0 files"``. Pass ``plural``
++    to override the default of appending ``s`` (``pluralize(3, "child",
++    "children")`` is ``"3 children"``). A count of 1 always uses ``singular``.
++    Negative counts raise ``ValueError``.
++    """
++    if count < 0:
++        raise ValueError("count must be non-negative")
++    if count == 1:
++        word = singular
++    elif plural is not None:
++        word = plural
++    else:
++        word = singular + "s"
++    return f"{count} {word}"
++
++
+ def __getattr__(name: str) -> object:
+     import warnings
+ 

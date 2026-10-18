@@ -1,0 +1,1 @@
+The test suite is badly broken after a recent change. Run the tests (`python -m pytest -q -k "not echo_via_pager"`), find the root cause, and fix it in the library code. Do not modify anything under tests/. Reply with one sentence describing the root cause.

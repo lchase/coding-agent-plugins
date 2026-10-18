@@ -1,0 +1,13 @@
+diff --git a/src/click/parser.py b/src/click/parser.py
+index 4fcbf7c..d0b634e 100644
+--- a/src/click/parser.py
++++ b/src/click/parser.py
+@@ -113,7 +113,7 @@ def _split_opt(opt: str) -> tuple[str, str]:
+     if first.isalnum():
+         return "", opt
+     if opt[1:2] == first:
+-        return opt[:2], opt[2:]
++        return opt[:1], opt[1:]
+     return first, opt[1:]
+ 
+ 

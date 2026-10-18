@@ -1,0 +1,1 @@
+Some tests involving IntRange clamping are failing. Find the bug in the library code and fix it. Do not modify anything under tests/. Run the relevant tests to confirm. Reply with one sentence describing the fix.

@@ -240,6 +240,15 @@ for you: [`plugins/factory/README.md`](plugins/factory/README.md).
 
 ---
 
+## Token-savings benchmark
+
+[`benchmarks/token-savings/`](benchmarks/token-savings/) compares stock Claude Code with
+plugins and settings that claim to cut tokens or cost. It is not a marketplace plugin.
+Click 8.5.0 is fetched at a pinned commit when you run it. The full matrix calls the
+Anthropic API and has a hard ceiling of $600 at the default per-session cap. Read the
+benchmark README before you run it. `./benchmarks/token-savings/check.sh` is the offline
+check and does not spend API money.
+
 ## Repo layout
 
 ```
@@ -276,6 +285,8 @@ plugins/{cache-clock,usage-gauge,auto-handoff,agent-watch,recording-mode}/   # p
   .claude-plugin/plugin.json      # each with its own version
   hooks/                          # register.tsx (the mod) + hooks.json, tests where present
   types/                          # mod API typings
+
+benchmarks/token-savings/         # paired Claude Code cost benchmark (not a plugin)
 ```
 
 ## Developing
@@ -283,6 +294,7 @@ plugins/{cache-clock,usage-gauge,auto-handoff,agent-watch,recording-mode}/   # p
 ```
 claude plugin validate .                                # marketplace + all plugins
 ./plugins/smart-review/scripts/validate-adapters.sh      # smart-review's per-harness manifests
+./benchmarks/token-savings/check.sh                      # benchmark lint and graders; no API spend
 ```
 
 **Releasing:** users only get an update when a plugin's `version` string changes, so bump
