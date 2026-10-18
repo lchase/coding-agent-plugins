@@ -69,9 +69,10 @@ Each cell is one fresh Click checkout and one fresh `claude -p` process.
 3. Every session copies the pin into a temp directory outside this repo, applies
    `patches/<task>.patch` when that file exists, and folds the patch into the only commit.
    The clone is shallow, so the parent of 8.5.0 is not present and `git show` cannot print
-   the injection as a one-line diff. `origin` is removed. The workdir venv imports that
-   checkout's `src/click` and does not keep pip's `direct_url.json`, which would otherwise
-   point back at `.cache/` inside this repo.
+   the injection as a one-line diff. `origin` is removed, the clone reflog is deleted, and copied bytecode is deleted.
+   Those three record the cache path. The workdir venv imports that checkout's
+   `src/click` and does not keep pip's `direct_url.json`, which would otherwise point
+   back at `.cache/` inside this repo.
 4. Arm order is shuffled per task and repeat (`random.Random` with a stored seed). The
    seed and the order are columns on every row.
 5. The prompt is the task file. Claude is invoked as

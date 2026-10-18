@@ -27,8 +27,12 @@ expect() {
   got=$("$ROOT/grade.sh" "$task" "$wd")
   if [[ $got != "$want" ]]; then
     printf 'grade %s: want %s, got %s\n' "$task" "$want" "$got" >&2
-    tail -n 40 "$wd/.venv/grade-pytest.log" >&2 || true
-    tail -n 40 "$wd/.venv/grade-hidden.log" >&2 || true
+    if [[ -f $wd/.venv/grade-pytest.log ]]; then
+      tail -n 40 "$wd/.venv/grade-pytest.log" >&2
+    fi
+    if [[ -f $wd/.venv/grade-hidden.log ]]; then
+      tail -n 40 "$wd/.venv/grade-hidden.log" >&2
+    fi
     exit 1
   fi
   printf 'ok %s %s\n' "$task" "$want"

@@ -14,10 +14,10 @@ fi
 
 task=$1
 wd=$2
-hidden_tmp=""
+hidden_dir=""
 cleanup() {
-  if [[ -n $hidden_tmp ]]; then
-    rm -f "$hidden_tmp"
+  if [[ -n $hidden_dir ]]; then
+    rm -rf "$hidden_dir"
   fi
 }
 trap cleanup EXIT
@@ -101,9 +101,9 @@ case "$task" in
     if ! grep -q 'pluralize' src/click/__init__.py; then
       case_result "FAIL:not_exported"
     fi
-    hidden_tmp=$(mktemp "${TMPDIR:-/tmp}/token-savings-hidden.XXXXXX")
-    rm -f "$hidden_tmp"
-    hidden_tmp="${hidden_tmp}.py"
+    # A hyphen in the filename is not a valid module name, and pytest imports the file.
+    hidden_dir=$(mktemp -d "${TMPDIR:-/tmp}/tokensavings.XXXXXX")
+    hidden_tmp="$hidden_dir/test_t4_pluralize.py"
     cp "$ROOT/hidden/test_t4_pluralize.py" "$hidden_tmp"
     log=$wd/.venv/grade-hidden.log
     if ! "$py" -m pytest -q -p no:cacheprovider --tb=line "$hidden_tmp" >"$log" 2>&1; then

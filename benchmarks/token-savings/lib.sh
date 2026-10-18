@@ -194,6 +194,11 @@ make_workdir() {
   rm -rf "$pure/click"
   # pip records the local checkout path. That path sits inside this repo.
   rm -f "$pure"/click-*.dist-info/direct_url.json
+  # Bytecode records the path it was compiled from. The tool venv lives under
+  # this repo, so those .pyc files would point at .cache/.
+  find "$pure" -type d -name '__pycache__' -prune -exec rm -rf {} +
+  # git records "clone: from <cache>" in the reflog. The cache is inside this repo.
+  rm -rf "$wd/.git/logs"
   printf '%s\n' "$wd/src" > "$pure/aaa_workdir_src.pth"
   if workdir_leaks_bench "$wd"; then
     rm -rf "$wd"
