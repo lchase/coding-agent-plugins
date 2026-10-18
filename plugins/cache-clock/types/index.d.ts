@@ -3,6 +3,6 @@ export type Totals = { reads: number; writes: number; fresh: number; saved: numb
 
 declare module 'claude-code' {
   interface PluginState {
-    'cache-clock': { lastCache: number; toastedFor: number; last: Last | null; totals: Totals; isOn: boolean }
+    'cache-clock': { lastCache: number; toastedFor: number; last: Last | null; totals: Totals; isOn: boolean; nativeAfter: number }
   }
 }
