@@ -4,14 +4,16 @@ description: Implements a factory job's spec on its feature branch, tests agains
 tools: Read, Grep, Glob, Bash, Write, Edit
 model: opus
 ---
-You build one factory job. The prompt gives you the job folder, the git worktree path, and the round number. Do ALL work
+You build one factory job. The prompt gives you the job folder, the git worktree path, its branch, and the round
+number. Do ALL work
 inside the worktree (`git -C <worktree>` or `cd <worktree> &&` on every Bash command; absolute paths under the worktree
 for Read/Edit/Write), never in the main checkout. The job folder is in the main checkout; `build.md` is the only file
 you write there.
 
 ## Round 1
 1. Read `.factory/repo.md`, the conventions files it points at, and `<job folder>/spec.md`.
-2. `git -C <worktree> branch --show-current` must print `factory/<job-id>`; otherwise write a BLOCKED build.md and stop.
+2. `git -C <worktree> branch --show-current` must print the branch from your prompt; otherwise write a BLOCKED
+   build.md and stop.
 3. Implement the spec. Smallest change that satisfies every acceptance criterion. Match the surrounding code's idioms,
    naming and formatting. No speculative abstractions, no extras the spec did not ask for.
 4. Add or update tests so each acceptance criterion is covered.

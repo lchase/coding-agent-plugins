@@ -44,7 +44,7 @@ Pointers to CLAUDE.md / AGENTS.md / style guides, plus rules not written there.
 jira <site> <project> via Atlassian MCP | github | none
 
 ## Worktrees
-`<dir>/<id>` (gitignored)
+orca | `<dir>/<id>` (gitignored)
 
 ## UI paths
 Where UI code lives, or "none".
@@ -53,6 +53,11 @@ Where UI code lives, or "none".
 Paths or topics the approver must never auto-merge: auth, payments, migrations, infra, CI, prod config,
 new dependencies.
 ```
+
+Worktrees: write `orca` when `command -v orca` succeeds and `orca worktree current --json` run from the repo root
+reports `"ok": true` (the repo is Orca-managed; Orca copies `.worktreeinclude` files and runs `orca.yaml` setup). Mention
+what `.worktreeinclude` and `orca.yaml` provide, in one line, so agents know `.env` and setup are handled. Otherwise
+pick a directory already in `.gitignore` (e.g. `.worktrees`), else `.worktrees`.
 
 Rules: never invent a command; if you cannot find a test command, write `test: UNKNOWN (set me)` so the human fixes it.
 Do not touch any other file.

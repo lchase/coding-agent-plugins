@@ -209,7 +209,8 @@ independent of the others, and works on Claude Code only.
 A small, visual software factory. `/factory <input>` takes a feature or bug as text, a path to
 a requirements `.md`, an issue key or URL, or a GitHub issue, and runs it through a fixed loop:
 **spec-writer** writes a spec with testable acceptance criteria, **builder** implements it in
-its own git worktree on a `factory/<job-id>` branch, four reviewers (**security**, **ux**,
+its own git worktree (via the Orca CLI when present, so `.env` and setup hooks come along, else
+plain `git worktree`), four reviewers (**security**, **ux**,
 **ui**, **code**) run in parallel and each writes a `VERDICT: PASS | CHANGES` file, the builder
 is resumed while any review says CHANGES (max two rounds), then an **approver** writes
 `APPROVE` or `ESCALATE`. APPROVE merges to main locally; ESCALATE parks the job as needs-human.
