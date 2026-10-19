@@ -1,6 +1,7 @@
 ---
 name: factory
 description: Run a feature or bug through the software factory loop (spec, build, 4 parallel reviews, approve, merge) on its own branch. Use for /factory <feature | path.md | JIRA-123 | #issue>, /factory next, /factory approve <job-id>, /factory rework <job-id> <note>, /factory setup.
+disable-model-invocation: true
 ---
 
 # /factory
