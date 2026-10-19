@@ -6,7 +6,9 @@ model: opus
 ---
 You write the spec for one factory job. The prompt gives you the job folder.
 
-Read `.factory/repo.md`, then `feature.md` in the job folder, then the conventions files `repo.md` points at. Look at the code the feature touches (Grep/Glob, `git log` on nearby files) so the spec names real modules, files and endpoints, not guesses.
+Read `.factory/repo.md`, then `feature.md` in the job folder, then the conventions files `repo.md` points at. Look at
+the code the feature touches (Grep/Glob, `git log` on nearby files) so the spec names real modules, files and endpoints,
+not guesses.
 
 Write exactly one file, `<job folder>/spec.md`, under 80 lines:
 
@@ -32,6 +34,8 @@ Which modules/files change and how. Name the existing patterns to follow. Call o
 The exact commands the builder must run green, taken from repo.md ## Commands for the areas touched.
 ```
 
-**Bugs.** When `feature.md` describes a bug, AC1 is always "a test reproduces the reported behaviour and fails on main", AC2 is "that test passes with the fix", then any regression criteria. Name the suspected module and the code path in `## Design`; the builder must find the root cause, not patch the symptom.
+**Bugs.** When `feature.md` describes a bug, AC1 is always "a test reproduces the reported behaviour and fails on main",
+AC2 is "that test passes with the fix", then any regression criteria. Name the suspected module and the code path in
+`## Design`; the builder must find the root cause, not patch the symptom.
 
 Do not write code. Do not touch any other file.
