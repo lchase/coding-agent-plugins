@@ -206,30 +206,36 @@ independent of the others, and works on Claude Code only.
 
 ## factory
 
-A small, visual software factory built from one skill, eight subagents and markdown files.
-`/factory <input>` takes a feature or bug as text, a path to a requirements `.md`, an issue
-key or URL, or a GitHub issue, and runs it through the loop: **spec-writer** writes a spec
-with testable acceptance criteria, **builder** implements it in its own git worktree on a
-`factory/<job-id>` branch, four reviewers (**security**, **ux**, **ui**, **code**) run in
-parallel and each writes a `VERDICT: PASS | CHANGES` file, the builder is resumed while any
-review says CHANGES (max two rounds), then an **approver** writes `APPROVE` or `ESCALATE`.
-APPROVE merges to main; ESCALATE parks the job as needs-human for `/factory approve` or
-`/factory rework <job-id> <note>`.
-
-Everything repo-specific (test and lint commands, conventions, commit prefix, issue tracker,
-escalation list) lives in `.factory/repo.md`. The first `/factory` call in a repo runs
-`/factory setup`, which profiles the repo into that file for you to review; agents read it
-instead of carrying any stack assumptions. Job state is `.factory/jobs/<id>/` (gitignored),
-one `job.json` per job, so several sessions can run jobs at once.
+A small, visual software factory. `/factory <input>` takes a feature or bug as text, a path to
+a requirements `.md`, an issue key or URL, or a GitHub issue, and runs it through a fixed loop:
+**spec-writer** writes a spec with testable acceptance criteria, **builder** implements it in
+its own git worktree on a `factory/<job-id>` branch, four reviewers (**security**, **ux**,
+**ui**, **code**) run in parallel and each writes a `VERDICT: PASS | CHANGES` file, the builder
+is resumed while any review says CHANGES (max two rounds), then an **approver** writes
+`APPROVE` or `ESCALATE`. APPROVE merges to main locally; ESCALATE parks the job as needs-human.
 
 ```
 /plugin install factory@lchase
-bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts"            # live board at http://localhost:8765
-bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts" example    # dummy data, to see the board
 ```
 
-Claude Code only. Dashboard needs Bun. Details:
-[`plugins/factory/skills/factory/SKILL.md`](plugins/factory/skills/factory/SKILL.md).
+Then, in a repo:
+
+```
+/factory setup                          # once per repo: profiles it into .factory/repo.md, review that file
+/factory <text | path.md | KEY-123 | #123>
+/factory next                           # first unchecked item in .factory/backlog.md
+/factory approve <job-id>               # merge a needs-human job
+/factory rework <job-id> <note>         # send it back to the builder with your note
+bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts"   # live board at http://localhost:8765
+```
+
+Nothing repo-specific is baked in: commands, conventions, commit rules, issue tracker and the
+approver's never-auto-merge list all come from `.factory/repo.md`, which `/factory setup`
+drafts and you edit. Job state is `.factory/jobs/<id>/` (gitignored), one folder of markdown
+per job, so several sessions can run jobs at once and the dashboard shows them all.
+
+Claude Code only. Dashboard needs Bun. Full guide, including what happens when a job stops
+for you: [`plugins/factory/README.md`](plugins/factory/README.md).
 
 ---
 
