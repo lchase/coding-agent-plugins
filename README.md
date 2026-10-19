@@ -81,7 +81,7 @@ The tldraw skill's command also changed: `/tldraw:tldraw` → **`/tldraw:diagram
 | [**auto-handoff**](plugins/auto-handoff/) | Mod: band line showing how full the chat is; saves a `HANDOFF.md` at a threshold (auto or on request), then clear and continue or resume in a new session | `/auto-handoff` | Claude Code only |
 | [**agent-watch**](plugins/agent-watch/) | Mod: band line showing who is doing the work this turn (main chat, helper agents, models, tasks, status, skills), plus a pane with per-agent blocks, per-model totals, timeline | `/agent-watch` | Claude Code only |
 | [**recording-mode**](plugins/recording-mode/) | Mod: screen-record without leaking secrets; tells the model to keep keys, emails, private words off screen and masks them in the transcript display only, red REC chip | `/rec` | Claude Code only |
-| [**factory**](plugins/factory/) | Software factory: a feature or bug goes through spec-writer, builder, four parallel reviewers and an approver on its own branch, then merges to main or waits for you; live dashboard | `/factory <input>`, `/factory {setup,next,approve,rework}` | Claude Code only (dashboard needs Bun) |
+| [**factory**](plugins/factory/) | Software factory: a feature or bug goes through spec-writer, builder, four parallel reviewers and an approver on its own branch, then merges to main or waits for you; live dashboard | `/factory <input>`, `/factory {setup,next,approve,rework,serve}` | Claude Code only (dashboard needs Bun) |
 
 ---
 
@@ -227,7 +227,7 @@ Then, in a repo:
 /factory next                           # first unchecked item in .factory/backlog.md
 /factory approve <job-id>               # merge a needs-human job
 /factory rework <job-id> <note>         # send it back to the builder with your note
-bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts"   # live board at http://localhost:8765
+/factory serve                          # live board at http://localhost:8765 (needs Bun)
 ```
 
 Nothing repo-specific is baked in: commands, conventions, commit rules, issue tracker and the

@@ -1,6 +1,6 @@
 ---
 name: factory
-description: Run a feature or bug through the software factory loop (spec, build, 4 parallel reviews, approve, merge) on its own branch. Use for /factory <feature | path.md | JIRA-123 | #issue>, /factory next, /factory approve <job-id>, /factory rework <job-id> <note>, /factory setup.
+description: Run a feature or bug through the software factory loop (spec, build, 4 parallel reviews, approve, merge) on its own branch. Use for /factory <feature | path.md | JIRA-123 | #issue>, /factory next, /factory approve <job-id>, /factory rework <job-id> <note>, /factory setup, /factory serve.
 disable-model-invocation: true
 ---
 
@@ -93,6 +93,7 @@ so several sessions can run `/factory` at once, one job per session. Only **Merg
 | `/factory next` | Take the first `- [ ]` line in `.factory/backlog.md`, tick it `- [x] <item> (<job-id>)` with one Edit (if the Edit fails, another session claimed it: take the next line), run the loop |
 | `/factory approve <job-id>` | Merge a `needs-human` job into main (step 7) |
 | `/factory rework <job-id> <note>` | Write `round-N+1/review-human.md` (`VERDICT: CHANGES`, blank line, the note verbatim), stage `build`, resume builder with the step 5 message for round `N+1`; reviews then run as round `N+2` |
+| `/factory serve [example]` | Start the dashboard in the background and open it in the browser (see Dashboard) |
 
 ## /factory setup
 
@@ -238,6 +239,17 @@ new dependencies.
 ```
 
 ## Dashboard
+
+`/factory serve [example]`, run from the repo root:
+
+1. If `curl -sf http://localhost:8765/board.json` succeeds, a board is already up: skip to step 3.
+2. If `command -v bun` fails, say so (`brew install oven-sh/bun/bun` or https://bun.sh) and stop. Otherwise run
+   `bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts"` (append `example` for the bundled dummy jobs) as a background Bash
+   task and wait for step 1's check to pass (retry a few times, one second apart).
+3. `open http://localhost:8765` (macOS; `xdg-open` elsewhere) and print the URL. The server keeps running until the
+   session ends or the task is stopped.
+
+From a plain shell the same thing is:
 
 ```bash
 bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts"            # live board for the current repo: http://localhost:8765
