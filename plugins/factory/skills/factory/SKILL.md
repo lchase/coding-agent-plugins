@@ -145,16 +145,41 @@ Written by `repo-profiler`, edited by humans. Short; every agent reads it.
 
 ```
 # Factory repo profile
-## Stack            languages, frameworks, package managers
-## Main branch      main
-## Setup            commands for a fresh worktree (install deps), or "none"
-## Commands         test: <cmd> | lint: <cmd> | build: <cmd>   (per area if the repo has several)
-## Conventions      pointers to CLAUDE.md / AGENTS.md / style guides, plus rules not written there
-## Commits          prefix rule (e.g. "KEY-123 from Source, else factory/<id>"), signed yes/no, merge: squash | no-ff
-## Issue tracker    jira <site> <project> via Atlassian MCP | github | none
-## Worktrees        <dir>/<id>   (gitignored)
-## UI paths         where UI code lives, or "none"
-## Always escalate  paths or topics the approver must never auto-merge (auth, migrations, infra, prod config)
+
+## Stack
+Languages, frameworks, package managers.
+
+## Main branch
+main
+
+## Setup
+Commands for a fresh worktree (install deps), or "none".
+
+## Commands
+- test: `<cmd>`
+- lint: `<cmd>`
+- build: `<cmd>`
+(one bullet per area if the repo has several, e.g. backend / client)
+
+## Conventions
+Pointers to CLAUDE.md / AGENTS.md / style guides, plus rules not written there.
+
+## Commits
+- Prefix: rule (e.g. "issue key from feature.md Source, else factory/<id>")
+- Signed: yes | no
+- Merge: squash | no-ff
+
+## Issue tracker
+jira <site> <project> via Atlassian MCP | github | none
+
+## Worktrees
+`<dir>/<id>` (gitignored)
+
+## UI paths
+Where UI code lives, or "none".
+
+## Always escalate
+Paths or topics the approver must never auto-merge: auth, payments, migrations, infra, CI, prod config, new dependencies.
 ```
 
 ## Dashboard

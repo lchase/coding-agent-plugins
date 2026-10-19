@@ -1,7 +1,7 @@
 {
   "name": "factory",
   "description": "A small, visual software factory: /factory <feature> runs a feature or bug through spec-writer, builder, four parallel reviewers (security, ux, ui, code) and an approver on its own branch, then merges to main or hands it to you. Repo-specific commands and conventions live in .factory/repo.md, written by /factory setup. Ships a live dashboard.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "Lawrence Chase"
   },
