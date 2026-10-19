@@ -177,11 +177,18 @@ key, or `#issue`):
 ## Dashboard
 
 ```
-bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts"            # from the repo root
-bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts" example    # bundled dummy jobs, to see what it looks like
+/factory serve            # from the repo root; starts the server in the background and opens the browser
+/factory serve example    # bundled dummy jobs, to see what it looks like
 ```
 
-Open <http://localhost:8765>. Six columns (Spec, Build, Review, Approve, Merged, Needs human);
+Or from a plain shell:
+
+```
+bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts"
+bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts" example
+```
+
+The board is at <http://localhost:8765>. Six columns (Spec, Build, Review, Approve, Merged, Needs human);
 each review round is a row of four chips that fill in as verdicts land; needs-human cards are
 highlighted with the command to run. Click a card for a drawer with every file of that job,
 rendered. It polls every two seconds, so leave it open while jobs run.
