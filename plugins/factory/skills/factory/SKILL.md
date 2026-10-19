@@ -33,7 +33,7 @@ silently weakens every reviewer.
                    └─────────┬────────┘
                              ▼
                    ┌──────────────────┐
-                   │     builder      │◄────────────────────┐  build.md, commits on factory/<id>
+                   │     builder      │◄────────────────────┐  build.md, commits on the job branch
                    │       opus       │                     │
                    └─────────┬────────┘                     │
         ┌─────────────┬──────┴──────┬─────────────┐         │

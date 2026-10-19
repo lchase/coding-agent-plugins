@@ -55,9 +55,9 @@ new dependencies.
 ```
 
 Worktrees: write `orca` when `command -v orca` succeeds and `orca worktree current --json` run from the repo root
-reports `"ok": true` (the repo is Orca-managed; Orca copies `.worktreeinclude` files and runs `orca.yaml` setup). Mention
-what `.worktreeinclude` and `orca.yaml` provide, in one line, so agents know `.env` and setup are handled. Otherwise
-pick a directory already in `.gitignore` (e.g. `.worktrees`), else `.worktrees`.
+reports `"ok": true` (the repo is Orca-managed; Orca copies `.worktreeinclude` files and runs `orca.yaml` setup).
+Mention what `.worktreeinclude` and `orca.yaml` provide, in one line, so agents know `.env` and setup are handled.
+Otherwise pick a directory already in `.gitignore` (e.g. `.worktrees`), else `.worktrees`.
 
 Rules: never invent a command; if you cannot find a test command, write `test: UNKNOWN (set me)` so the human fixes it.
 Do not touch any other file.
