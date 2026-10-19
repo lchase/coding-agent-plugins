@@ -1,7 +1,7 @@
 # lchase
 
-Lawrence Chase's Claude Code marketplace: code review, diagram, and test-evidence skills,
-plus a set of small Claude Code mods that add band lines and panes to the terminal UI.
+Lawrence Chase's Claude Code marketplace: code review, diagram, test-evidence and software
+factory skills, plus a set of small Claude Code mods that add band lines and panes to the terminal UI.
 
 ```
 /plugin marketplace add lchase/skills
@@ -13,6 +13,7 @@ plus a set of small Claude Code mods that add band lines and panes to the termin
 /plugin install auto-handoff@lchase
 /plugin install agent-watch@lchase
 /plugin install recording-mode@lchase
+/plugin install factory@lchase
 ```
 
 Each plugin is independent; install only what you want. `@lchase` is the marketplace name
@@ -80,6 +81,7 @@ The tldraw skill's command also changed: `/tldraw:tldraw` → **`/tldraw:diagram
 | [**auto-handoff**](plugins/auto-handoff/) | Mod: band line showing how full the chat is; saves a `HANDOFF.md` at a threshold (auto or on request), then clear and continue or resume in a new session | `/auto-handoff` | Claude Code only |
 | [**agent-watch**](plugins/agent-watch/) | Mod: band line showing who is doing the work this turn (main chat, helper agents, models, tasks, status, skills), plus a pane with per-agent blocks, per-model totals, timeline | `/agent-watch` | Claude Code only |
 | [**recording-mode**](plugins/recording-mode/) | Mod: screen-record without leaking secrets; tells the model to keep keys, emails, private words off screen and masks them in the transcript display only, red REC chip | `/rec` | Claude Code only |
+| [**factory**](plugins/factory/) | Software factory: a feature or bug goes through spec-writer, builder, four parallel reviewers and an approver on its own branch, then merges to main or waits for you; live dashboard | `/factory <input>`, `/factory {setup,next,approve,rework}` | Claude Code only (dashboard needs Bun) |
 
 ---
 
@@ -202,10 +204,39 @@ independent of the others, and works on Claude Code only.
 
 ---
 
+## factory
+
+A small, visual software factory built from one skill, eight subagents and markdown files.
+`/factory <input>` takes a feature or bug as text, a path to a requirements `.md`, an issue
+key or URL, or a GitHub issue, and runs it through the loop: **spec-writer** writes a spec
+with testable acceptance criteria, **builder** implements it in its own git worktree on a
+`factory/<job-id>` branch, four reviewers (**security**, **ux**, **ui**, **code**) run in
+parallel and each writes a `VERDICT: PASS | CHANGES` file, the builder is resumed while any
+review says CHANGES (max two rounds), then an **approver** writes `APPROVE` or `ESCALATE`.
+APPROVE merges to main; ESCALATE parks the job as needs-human for `/factory approve` or
+`/factory rework <job-id> <note>`.
+
+Everything repo-specific (test and lint commands, conventions, commit prefix, issue tracker,
+escalation list) lives in `.factory/repo.md`. The first `/factory` call in a repo runs
+`/factory setup`, which profiles the repo into that file for you to review; agents read it
+instead of carrying any stack assumptions. Job state is `.factory/jobs/<id>/` (gitignored),
+one `job.json` per job, so several sessions can run jobs at once.
+
+```
+/plugin install factory@lchase
+bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts"            # live board at http://localhost:8765
+bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts" example    # dummy data, to see the board
+```
+
+Claude Code only. Dashboard needs Bun. Details:
+[`plugins/factory/skills/factory/SKILL.md`](plugins/factory/skills/factory/SKILL.md).
+
+---
+
 ## Repo layout
 
 ```
-.claude-plugin/marketplace.json   # the "lchase" marketplace: 8 plugin entries
+.claude-plugin/marketplace.json   # the "lchase" marketplace: 9 plugin entries
 AGENTS.md                         # repo-level agent pointer (→ smart-review)
 gemini-extension.json + GEMINI.md # Gemini CLI installs the repo as an extension (→ smart-review)
 
@@ -228,7 +259,13 @@ plugins/test-drive/               # plugin 3, Claude Code only
   scripts/{lib.mjs,record.mjs,record-api.mjs,redact.mjs,verdict.mjs,compose.sh,report.mjs}   # shared by both skills
   references/                     # UI and API scenario schemas + examples
 
-plugins/{cache-clock,usage-gauge,auto-handoff,agent-watch,recording-mode}/   # plugins 4-8, Claude Code mods
+plugins/factory/                  # plugin 4, Claude Code only
+  .claude-plugin/plugin.json
+  skills/factory/SKILL.md         # the orchestrator loop, commands, setup, job.json and repo.md schemas
+  agents/                         # spec-writer, builder, review-{security,ux,ui,code}, approver, repo-profiler
+  dashboard/                      # dashboard.html + serve.ts (Bun) + example/ dummy jobs
+
+plugins/{cache-clock,usage-gauge,auto-handoff,agent-watch,recording-mode}/   # plugins 5-9, Claude Code mods
   .claude-plugin/plugin.json      # each with its own version
   hooks/                          # register.tsx (the mod) + hooks.json, tests where present
   types/                          # mod API typings
@@ -246,7 +283,7 @@ it on every user-facing change and push to `main`.
 
 - smart-review: version is pinned across all its manifests; bump them together with
   `./plugins/smart-review/scripts/bump-version.sh <version>`.
-- tldraw, test-drive, and each mod: version independently; edit that plugin's
+- tldraw, test-drive, factory, and each mod: version independently; edit that plugin's
   `.claude-plugin/plugin.json`.
 
 Once pushed, installed clients pick it up on their next background marketplace refresh, or
