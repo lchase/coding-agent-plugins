@@ -122,6 +122,21 @@
         "band",
         "masking"
       ]
+    },
+    {
+      "name": "factory",
+      "source": "./plugins/factory",
+      "description": "A small, visual software factory: /factory <feature> runs a feature or bug through spec-writer, builder, four parallel reviewers and an approver on its own branch, then merges to main or hands it to you. Repo-specific commands live in .factory/repo.md from /factory setup. Live dashboard included.",
+      "category": "development",
+      "keywords": [
+        "factory",
+        "orchestration",
+        "subagents",
+        "spec",
+        "review",
+        "dashboard",
+        "worktree"
+      ]
     }
   ]
 }

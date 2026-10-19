@@ -49,6 +49,16 @@ package of independently-installable plugins:
    `plugins/test-drive/.claude-plugin/plugin.json`. Both drivers have only been smoke-tested
    against toy servers, so test changes with a real dev server.
 
+4. **factory** (`plugins/factory/`) is Claude Code only. One skill (`/factory`) orchestrates
+   eight subagents under `plugins/factory/agents/` through spec, build, four parallel reviews,
+   approve, merge. The skill and agents carry nothing repo-specific: every agent reads
+   `.factory/repo.md` in the target repo, which `/factory setup` (the `repo-profiler` agent)
+   drafts. Job state is `.factory/jobs/<id>/` with one `job.json` per job; `dashboard/serve.ts`
+   (Bun) assembles those into `board.json` for `dashboard.html`. Change the loop in
+   `skills/factory/SKILL.md`, a stage in its agent file, and keep `repo.md`'s section names
+   stable because agents look them up by heading. Own version in
+   `plugins/factory/.claude-plugin/plugin.json`. Usage guide: `plugins/factory/README.md`.
+
 There is no application build. smart-review is markdown plus a small TypeScript eval
 harness; tldraw is markdown plus one Node script. **Most of this file is about smart-review.**
 

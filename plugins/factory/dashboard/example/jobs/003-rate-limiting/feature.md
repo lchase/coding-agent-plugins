@@ -1,0 +1,1 @@
+Add rate limiting to the agent-system management endpoints (POST/PUT/DELETE under /multi-agent/manage) so a single account cannot exceed 60 writes per minute. Return 429 with a retry_after_seconds field.
