@@ -1,6 +1,7 @@
 ---
 name: factory
 description: Run a feature or bug through the software factory loop (spec, build, 4 parallel reviews, approve, merge) on its own branch. Use for /factory <feature | path.md | JIRA-123 | #issue>, /factory next, /factory approve <job-id>, /factory rework <job-id> <note>, /factory setup.
+disable-model-invocation: true
 ---
 
 # /factory
@@ -33,7 +34,7 @@ silently weakens every reviewer.
                    └─────────┬────────┘
                              ▼
                    ┌──────────────────┐
-                   │     builder      │◄────────────────────┐  build.md, commits on factory/<id>
+                   │     builder      │◄────────────────────┐  build.md, commits on the job branch
                    │       opus       │                     │
                    └─────────┬────────┘                     │
         ┌─────────────┬──────┴──────┬─────────────┐         │
@@ -73,8 +74,12 @@ Agent definitions live in this plugin's `agents/` (one file per box). Model per 
 <repo>/.factory/jobs/<id>/build.md            builder
 <repo>/.factory/jobs/<id>/round-<N>/review-{security,ux,ui,code,human}.md
 <repo>/.factory/jobs/<id>/decision.md         approver
-<repo>/<worktree dir>/<id>/                   the job's worktree on branch factory/<id>  (dir from repo.md)
+<worktree>                                    the job's worktree (path and branch recorded in job.json)
 ```
+
+Worktrees come from **Orca** when `repo.md` `## Worktrees` says `orca` (the CLI copies `.worktreeinclude` files such
+as `.env` and runs the repo's `orca.yaml` setup), otherwise from plain `git worktree add`. In both cases the path and
+branch are whatever the tool returned, written to `job.json`, and every agent prompt carries them.
 
 `.factory/jobs/` is runtime state and gitignored (setup adds it). Each job has its own worktree, branch and `job.json`,
 so several sessions can run `/factory` at once, one job per session. Only **Merge** touches the main checkout.
@@ -94,7 +99,8 @@ so several sessions can run `/factory` at once, one job per session. Only **Merg
 1. `mkdir -p .factory`. Spawn `repo-profiler` with prompt `Repo root: <absolute path>. Write .factory/repo.md.` Wait.
 2. If `.factory/backlog.md` is missing, write it with the header `# Factory backlog` and one line explaining
    `- [ ] <feature>` per line.
-3. Ensure `.gitignore` contains `.factory/jobs/` and the worktree dir from `repo.md` (append if missing).
+3. Ensure `.gitignore` contains `.factory/jobs/` and, when `repo.md` `## Worktrees` is a directory inside the repo,
+   that directory too (append if missing). Nothing to add for `orca`.
 4. Print `repo.md` in full and stop: "Review `.factory/repo.md`, then run your `/factory` command again." Whether
    `repo.md` and `backlog.md` get committed is the user's call.
 
@@ -102,7 +108,7 @@ so several sessions can run `/factory` at once, one job per session. Only **Merg
 
 Run every step in order. Rewrite `job.json` whole after each change (schema below). Report one short line per
 transition, e.g. `003-rate-limiting: round 2, security CHANGES, ux/ui/code PASS, resuming builder`. Never skip the wait
-in step 5. `<wt>` below is `<worktree dir>/<id>` from `repo.md`.
+in step 5. `<wt>` and `<branch>` below are the `worktree` and `branch` fields of `job.json`, set in step 3.
 
 1. **Create the job.** `id` = next 3-digit number after the highest folder in `.factory/jobs/` (`001` if none) + `-` +
    kebab slug (max 4 words), e.g. `003-rate-limiting`. Claim it with `mkdir .factory/jobs/<id>` (no `-p`); if that fails
@@ -120,15 +126,26 @@ in step 5. `<wt>` below is `<worktree dir>/<id>` from `repo.md`.
 2. **Spec.** Spawn `spec-writer` with prompt: `Job folder: .factory/jobs/<id>`. Wait; check `spec.md` exists. Set stage
    `build`.
 
-3. **Worktree + builder.** `git worktree add <wt> -b factory/<id> <main branch>`. Run any fresh-checkout setup `repo.md`
-   lists, in the worktree. Spawn `builder` with `name: builder-<id>` and prompt:
-   `Job folder: .factory/jobs/<id>. Worktree: <wt>. Round: 1.`
+3. **Worktree + builder.** Create the worktree per `repo.md` `## Worktrees`:
+   - `orca`:
+     ```bash
+     orca worktree create --name factory-<id> --base-branch <main branch> --no-parent --setup run --json
+     ```
+     Add `--reference <key>` when `feature.md`'s `Source:` is an issue key or URL. From the JSON take
+     `result.worktree.path` as `<wt>` and `result.worktree.branch` without its `refs/heads/` prefix as `<branch>`
+     (Orca applies its own branch prefix, e.g. `lchase/factory-003-rate-limiting`). Orca copies `.worktreeinclude`
+     files and runs the `orca.yaml` setup script, so skip the manual setup below.
+   - `<dir>/<id>`: `git worktree add <dir>/<id> -b factory/<id> <main branch>`, so `<wt>` = `<dir>/<id>` and `<branch>`
+     = `factory/<id>`. Then run any fresh-checkout setup `repo.md` lists, inside the worktree.
+
+   Write `worktree` (absolute path) and `branch` to `job.json`. Spawn `builder` with `name: builder-<id>` and prompt:
+   `Job folder: .factory/jobs/<id>. Worktree: <wt>. Branch: <branch>. Round: 1.`
    Wait for it to finish, then **Build check**: read the first line of `build.md`. `STATUS: READY` → step 4.
    `STATUS: BLOCKED` → stage `needs-human`, `note` = the blocked reason, stop and tell the user.
 
 4. **Reviews (parallel).** `mkdir -p .factory/jobs/<id>/round-<N>`. Set stage `review`, round `N`, all four `reviews` to
    `pending`. In ONE message spawn `review-security`, `review-ux`, `review-ui`, `review-code`, each with prompt:
-   `Job folder: .factory/jobs/<id>. Worktree: <wt>. Round folder: .factory/jobs/<id>/round-<N>.`
+   `Job folder: .factory/jobs/<id>. Worktree: <wt>. Branch: <branch>. Round folder: .factory/jobs/<id>/round-<N>.`
 
 5. **WAIT FOR ALL.** The round is complete only when all four files `round-<N>/review-{security,ux,ui,code}.md` exist.
    As each lands, read its first line and write that verdict (`PASS` or `CHANGES`) to `job.json` straight away so the
@@ -142,8 +159,8 @@ in step 5. `<wt>` below is `<worktree dir>/<id>` from `repo.md`.
      finishes → **Build check**, then step 4 with `N+1`.
    - Any `CHANGES` and `N == 2` → step 6 anyway; the approver sees the unresolved items.
 
-6. **Approve.** Set stage `approve`. Spawn `approver` with prompt `Job folder: .factory/jobs/<id>. Worktree: <wt>.`
-   Wait. Read the first line of `decision.md`.
+6. **Approve.** Set stage `approve`. Spawn `approver` with prompt
+   `Job folder: .factory/jobs/<id>. Worktree: <wt>. Branch: <branch>.` Wait. Read the first line of `decision.md`.
    - `APPROVE` → step 7.
    - `ESCALATE` → stage `needs-human`, `note` = one line from `## Reason`. Stop and tell the user the job id, the
      worktree path, and the reason.
@@ -151,10 +168,11 @@ in step 5. `<wt>` below is `<worktree dir>/<id>` from `repo.md`.
 7. **Merge.** From the main checkout, which must be on the main branch with
    `git status --porcelain -- . ':!.factory/backlog.md'` empty. If not, set stage `needs-human`, `note` =
    `approved, main checkout busy`, and tell the user to run `/factory approve <id>` once it is clean. Otherwise merge
-   with the style `repo.md` `## Commits` gives (squash or no-ff, signed or not), commit title
-   `<prefix> <feature title>`, then:
+   `<branch>` with the style `repo.md` `## Commits` gives (squash or no-ff, signed or not), commit title
+   `<prefix> <feature title>`, then remove the worktree:
    ```bash
-   git worktree remove <wt> && git branch -D factory/<id>
+   orca worktree rm --worktree path:<wt>          # orca: also deletes the branch
+   git worktree remove <wt> && git branch -D <branch>   # git fallback
    ```
    If the merge fails: `git reset --merge`, stage `needs-human`, `note` = why. On success set stage `merged`, report the
    commit hash. Do not push.
@@ -163,7 +181,9 @@ in step 5. `<wt>` below is `<worktree dir>/<id>` from `repo.md`.
 
 ```json
 {
-  "id": "003-rate-limiting", "title": "Rate limiting", "branch": "factory/003-rate-limiting",
+  "id": "003-rate-limiting", "title": "Rate limiting",
+  "branch": "lchase/factory-003-rate-limiting",             // as returned by orca or git
+  "worktree": "/Users/you/ws/_workspaces/repo/factory-003-rate-limiting",   // absolute path
   "stage": "review",              // spec | build | review | approve | needs-human | merged
   "round": 2,
   "reviews": { "security": "CHANGES", "ux": "PASS", "ui": "pending", "code": "PASS" },   // current round
@@ -207,7 +227,7 @@ Pointers to CLAUDE.md / AGENTS.md / style guides, plus rules not written there.
 jira <site> <project> via Atlassian MCP | github | none
 
 ## Worktrees
-`<dir>/<id>` (gitignored)
+orca | `<dir>/<id>` (gitignored)
 
 ## UI paths
 Where UI code lives, or "none".

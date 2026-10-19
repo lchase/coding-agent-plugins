@@ -62,7 +62,7 @@ file, `.factory/repo.md`, which every agent reads before doing anything:
 - where your conventions are written (CLAUDE.md, AGENTS.md, style guides) plus rules that are not
 - commit prefix rule, signed or not, squash or no-ff merge
 - issue tracker (Jira via the Atlassian MCP, GitHub, or none)
-- where worktrees go, where UI code lives
+- worktrees via the Orca CLI (auto-detected) or a plain `git worktree` directory, where UI code lives
 - what the approver must never auto-merge (auth, migrations, infra, CI, prod config, new dependencies)
 
 Run `/factory setup` in the repo root. A `repo-profiler` agent reads your CLAUDE.md, package
@@ -123,9 +123,21 @@ Each job is a folder:
   decision.md         approver; first line APPROVE or ESCALATE
 ```
 
-The builder works in a git worktree (`<worktree dir>/<id>` from `repo.md`) on a branch named
-`factory/<id>`. Your main checkout is never touched until the merge, so you can keep working
-while a job runs.
+The builder works in its own git worktree. Your main checkout is never touched until the
+merge, so you can keep working while a job runs. Where the worktree comes from is a line in
+`repo.md`:
+
+- **`orca`**: if the [Orca CLI](https://www.onorca.dev/docs/cli/reference) is installed and the
+  repo is Orca-managed, setup writes this automatically. Worktrees are created with
+  `orca worktree create`, which copies the files listed in `.worktreeinclude` (`.env` and the
+  like), runs the repo's `orca.yaml` setup script, and shows the job in the Orca app. The
+  branch gets Orca's prefix (for example `lchase/factory-003-rate-limiting`) and an issue key
+  from the input is attached as a reference.
+- **a directory** such as `.worktrees/<id>`: plain `git worktree add` on branch `factory/<id>`,
+  then whatever `## Setup` in `repo.md` says, run by hand.
+
+Either way `job.json` records the worktree path and branch, and every agent prompt carries
+them.
 
 ## When a job stops for you
 
