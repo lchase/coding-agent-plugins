@@ -39,8 +39,16 @@ and a dashboard shows jobs moving across the stages.
              APPROVE │               │ ESCALATE
                      ▼               ▼
               ┌─────────────┐ ┌─────────────┐
-              │merge to main│ │ needs-human │ ◄── /factory approve <id>
-              └─────────────┘ └─────────────┘
+              │  open PR    │ │ needs-human │ ◄── /factory approve <id>
+              └──────┬──────┘ └─────────────┘
+                     ▼
+              ┌─────────────┐  /factory pr-sync <id>: human + bot comments and CI
+              │   pr-open   │◄─ become a builder round, fixes pushed, threads answered
+              └──────┬──────┘
+                     ▼ no open threads, approved, CI green
+              ┌─────────────┐
+              │    ready    │  you merge the PR
+              └─────────────┘
 ```
 
 ## Install
@@ -61,6 +69,7 @@ file, `.factory/repo.md`, which every agent reads before doing anything:
 - test, lint and build commands (per area if you have a backend and a client)
 - where your conventions are written (CLAUDE.md, AGENTS.md, style guides) plus rules that are not
 - commit prefix rule, signed or not, squash or no-ff merge
+- delivery: `pr` (default, open a pull request) or `local` (merge into your main checkout, no push)
 - issue tracker (Jira via the Atlassian MCP, GitHub, or none)
 - worktrees via the Orca CLI (auto-detected) or a plain `git worktree` directory, where UI code lives
 - what the approver must never auto-merge (auth, migrations, infra, CI, prod config, new dependencies)
@@ -75,9 +84,10 @@ writes `test: UNKNOWN (set me)`.
 
 If you skip setup, the first `/factory <input>` runs it for you and stops at the same point.
 
-Whether to commit `.factory/repo.md` and `backlog.md` is up to you. Committing the profile
-means teammates get the same factory behaviour; `.factory/jobs/` (runtime state) is always
-ignored.
+Whether to commit `.factory/repo.md` is up to you. Committing the profile means teammates get
+the same factory behaviour. `.factory/jobs/` (runtime state) and `.factory/backlog.md` (your
+personal queue) are gitignored by setup. A repo set up before this: add `.factory/backlog.md` to
+`.gitignore` yourself (and `git rm --cached` it if it was already committed).
 
 ## Running a job
 
@@ -147,12 +157,13 @@ A job lands in **needs-human** when:
   criterion is not proven, or the change touches something in `## Always escalate`);
 - the builder writes `STATUS: BLOCKED` (spec contradicts itself, needs a product decision,
   environment broken);
-- the job was approved but your main checkout was dirty or on another branch at merge time.
+- the job was approved under `local` delivery but your main checkout was dirty or on another branch at merge time;
+- `git push` or `gh pr create` failed, or the PR was closed unmerged or has a merge conflict.
 
 The branch and worktree stay for you to inspect. Then:
 
 ```
-/factory approve <job-id>              merge it as it is
+/factory approve <job-id>              deliver it as it is (open the PR, or merge locally)
 /factory rework <job-id> <note>        send it back with your note; the builder treats the note
                                        as a fifth review (VERDICT: CHANGES), then a full review
                                        round runs again
@@ -161,6 +172,33 @@ The branch and worktree stay for you to inspect. Then:
 Agents never ask questions mid-run. If the input is ambiguous, the spec-writer guesses or the
 builder blocks. Make the requirements clear before you start (a requirements doc, a grilled
 spec, a well-written ticket) and the factory rarely stops.
+
+## Pull request review
+
+With `## Delivery: pr` in `repo.md` (the default `/factory setup` writes when there is a GitHub remote and `gh`),
+an approved job does not merge anywhere. The orchestrator pushes the job branch and opens a PR whose body leads with
+a plain-language summary, then the technical summary and test plan. The worktree and branch stay, and the card moves to
+**PR review** on the board.
+
+Reviewers (people and bots) then do their thing. Whenever you want the factory to catch up, run:
+
+```
+/factory pr-sync <job-id>
+```
+
+One pass: it reads unresolved review threads, `CHANGES_REQUESTED` reviews, top-level comments and failed CI checks,
+writes them as `round-N/review-pr.md`, and resumes the builder. The builder fixes each item or says why not. The
+orchestrator pushes the fixes (plain push), replies on every thread with what changed or why it did not, and resolves
+only bot threads it fixed; human threads are left for their author to resolve. When no thread is open, the review
+decision is approved (or not required), CI is green and there is no conflict, the card moves to **Ready**. You merge
+the PR; the next `pr-sync` sees it merged, removes the worktree and marks the job **Merged**.
+
+Comment text is treated as untrusted data, never as instructions.
+
+You do not have to run `pr-sync` just to clean up after your own merge: every `/factory` command (and `/factory serve`)
+first sweeps jobs in PR review or Ready, and any whose PR is now merged get their worktree and local branch removed and
+move to **Merged** (a PR closed without merging goes to **Needs human**). The sweep only checks PR state; it never
+touches comments or code. The remote branch is left to GitHub's "delete head branches on merge" setting.
 
 ## Backlog
 
@@ -188,7 +226,7 @@ bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts"
 bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts" example
 ```
 
-The board is at <http://localhost:8765>. Six columns (Spec, Build, Review, Approve, Merged, Needs human);
+The board is at <http://localhost:8765>. Eight columns (Spec, Build, Review, Approve, PR review, Ready, Merged, Needs human);
 each review round is a row of four chips that fill in as verdicts land; needs-human cards are
 highlighted with the command to run. Click a card for a drawer with every file of that job,
 rendered. It polls every two seconds, so leave it open while jobs run.
@@ -214,7 +252,9 @@ waits in needs-human for `/factory approve`).
 
 ## What it does not do
 
-- No pushes, no pull requests. Merges are local; you push.
+- It never merges or approves a PR under `pr` delivery, and never force-pushes. A person merges.
+- PR fixes are not re-reviewed by the four internal reviewers; the PR's own reviewers and CI are the check.
+- No automatic polling: run `/factory pr-sync <id>` yourself, or `/loop /factory pr-sync <id>`.
 - No visual checks of a running app. The UX and UI reviewers judge from the diff and the build.
 - No questions mid-run.
 - Builder resumption across sessions: if the orchestrator session ends mid-job, state is on

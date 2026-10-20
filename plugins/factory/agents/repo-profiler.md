@@ -40,6 +40,9 @@ Pointers to CLAUDE.md / AGENTS.md / style guides, plus rules not written there.
 - Signed: yes | no
 - Merge: squash | no-ff
 
+## Delivery
+pr | local
+
 ## Issue tracker
 jira <site> <project> via Atlassian MCP | github | none
 
@@ -53,6 +56,9 @@ Where UI code lives, or "none".
 Paths or topics the approver must never auto-merge: auth, payments, migrations, infra, CI, prod config,
 new dependencies.
 ```
+
+Delivery: write `pr` when `git remote -v` shows a GitHub remote and `command -v gh` succeeds, else `local`. Never
+write `local` just because you are unsure; `pr` is the default.
 
 Worktrees: write `orca` when `command -v orca` succeeds and `orca worktree current --json` run from the repo root
 reports `"ok": true` (the repo is Orca-managed; Orca copies `.worktreeinclude` files and runs `orca.yaml` setup).
