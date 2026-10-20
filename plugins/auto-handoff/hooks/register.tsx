@@ -47,7 +47,11 @@ const hhmm = (ms: number): string => {
 }
 
 // claude-sonnet-5-5 -> "sonnet 5.5"; unknown ids pass through
-export const modelLabel = (id: string): string => {
+// control chars stripped so a crafted model id or effort cannot inject terminal escapes
+export const plain = (v: string | number): string => String(v).replace(/[\x00-\x1f\x7f-\x9f]/g, '')
+
+export const modelLabel = (raw: string): string => {
+  const id = plain(raw)
   const m = id.match(/^claude-([a-z]+)-(\d+)(?:-(\d+))?/)
   return m ? `${m[1]} ${m[2]}${m[3] ? `.${m[3]}` : ''}` : id
 }
@@ -341,7 +345,7 @@ export const register: Register = on => {
       const color = isHot ? RED : percent >= 60 ? AMBER : GREEN
       body = (
         <Box>
-          {b.model !== null && <Text dimColor>{`${modelLabel(b.model)}${b.effort !== null ? ` ${b.effort}` : ''} · `}</Text>}
+          {b.model !== null && <Text dimColor>{`${modelLabel(b.model)}${b.effort !== null ? ` ${plain(b.effort)}` : ''} · `}</Text>}
           <Text color={color}>{`ctx ${meter(percent)} ${Math.round(percent)}% `}</Text>
           <Text dimColor>{b.phase === 'saving' ? '· saving handoff… ' : `· ${s.mode === 'auto' ? 'auto-saves' : 'saves'} at ${s.threshold}% `}</Text>
           {b.phase !== 'saving' && (
