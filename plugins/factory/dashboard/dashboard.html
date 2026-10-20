@@ -30,7 +30,7 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
-  body { background: var(--bg); color: var(--ink); font: 14px/20px Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); color: var(--ink); font: 14px/20px Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
   button { font: inherit; color: inherit; }
 
   header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; min-height: 56px; padding: 0 24px; border-bottom: 1px solid var(--line); }
@@ -41,7 +41,7 @@
   .status::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--live); margin-right: 8px; vertical-align: 0; animation: pulse 1.6s ease-in-out infinite; }
   .status.err { color: var(--human); } .status.err::before { background: var(--human); animation: none; }
 
-  .board { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; padding: 24px; align-items: start; }
+  .board { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 16px; padding: 24px; align-items: start; }
   .col { min-width: 0; }
   .col-head { display: flex; align-items: baseline; gap: 8px; padding: 0 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
   .col-head h2 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 500; white-space: nowrap; }
@@ -74,7 +74,8 @@
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
   @media (prefers-reduced-motion: reduce) { .pulse, .chip.wait, .status::before { animation: none; } }
 
-  footer { padding: 12px 24px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 12px; line-height: 16px; color: var(--faint); display: flex; gap: 24px; flex-wrap: wrap; }
+  .board { flex: 1; }
+  footer { margin-top: auto; padding: 12px 24px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 12px; line-height: 16px; color: var(--faint); display: flex; gap: 24px; flex-wrap: wrap; }
 
   /* Drawer */
   .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .2s; }
@@ -132,7 +133,7 @@
 <main class="board" id="board"></main>
 <footer>
   <span>/factory &lt;feature&gt;</span><span>/factory next</span>
-  <span>/factory approve &lt;job-id&gt;</span><span>/factory rework &lt;job-id&gt; &lt;note&gt;</span>
+  <span>/factory approve &lt;job-id&gt;</span><span>/factory rework &lt;job-id&gt; &lt;note&gt;</span><span>/factory pr-sync &lt;job-id&gt;</span>
 </footer>
 
 <div class="scrim" data-close></div>
@@ -148,7 +149,8 @@
 const POLL_MS = 2000;
 const STAGES = [
   ["spec", "Spec", "spec-writer · opus"], ["build", "Build", "builder · opus"], ["review", "Review", "sec · ux · ui · code"],
-  ["approve", "Approve", "approver · opus"], ["merged", "Merged", "main", "merged"], ["needs-human", "Needs human", "approve · rework", "human"],
+  ["approve", "Approve", "approver · opus"], ["pr-open", "PR review", "pr-sync"], ["ready", "Ready", "you merge", "human"],
+  ["merged", "Merged", "main", "merged"], ["needs-human", "Needs human", "approve · rework", "human"],
 ];
 const LIVE = new Set(["spec", "build", "review", "approve"]);
 const REVIEWERS = [["security", "sec"], ["ux", "ux"], ["ui", "ui"], ["code", "code"]];
@@ -165,14 +167,17 @@ function chips(n, v, waiting) {
   }).join("") + `</div>`;
 }
 function card(j) {
-  const live = LIVE.has(j.stage), human = j.stage === "needs-human";
+  const live = LIVE.has(j.stage), human = j.stage === "needs-human" || j.stage === "ready";
   const rows = (j.rounds || []).map((v, i) => chips(i + 1, v, false));
   if (j.round > 0 && j.reviews) rows.push(chips(j.round, j.reviews, j.stage === "review"));
-  const note = human ? `<div class="note">${j.note ? esc(j.note) + "<br>" : ""}<code>/factory approve ${esc(j.id)}</code></div>`
+  const pr = j.pr ? `<div class="branch">PR #${esc(j.pr.number)}</div>` : "";
+  const note = j.stage === "ready" ? `<div class="note">${esc(j.note || "all clear")}<br>${j.pr ? esc(j.pr.url) : ""}</div>`
+             : j.stage === "pr-open" ? `<div class="note">${j.note ? esc(j.note) + "<br>" : ""}<code>/factory pr-sync ${esc(j.id)}</code></div>`
+             : human ? `<div class="note">${j.note ? esc(j.note) + "<br>" : ""}<code>/factory approve ${esc(j.id)}</code></div>`
              : j.note ? `<div class="note">${esc(j.note)}</div>` : "";
   return `<button class="card ${live ? "live" : ""} ${human ? "human" : ""} ${j.stage === "merged" ? "merged" : ""}" data-job="${esc(j.id)}">
     <div class="card-top">${live ? '<span class="pulse" aria-label="running"></span>' : ""}<span class="num">${esc(j.id)}</span>${human ? '<span class="flag">your call</span>' : ""}</div>
-    <p class="title">${esc(j.title || j.id)}</p><div class="branch">${esc(j.branch || "")}</div>
+    <p class="title">${esc(j.title || j.id)}</p><div class="branch">${esc(j.branch || "")}</div>${pr}
     ${rows.length ? `<div class="rounds">${rows.join("")}</div>` : ""}${note}</button>`;
 }
 function render() {
@@ -211,7 +216,7 @@ async function refreshDrawer() {
 
   const rounds = Math.max(j.round || 0, (j.rounds || []).length);
   const names = ["feature.md", "spec.md", "build.md", "decision.md"];
-  for (let n = 1; n <= rounds; n++) for (const [k] of [...REVIEWERS, ["human"]]) names.push(`round-${n}/review-${k}.md`);
+  for (let n = 1; n <= rounds; n++) for (const [k] of [...REVIEWERS, ["human"], ["pr"]]) names.push(`round-${n}/review-${k}.md`);
   const files = [];
   await Promise.all(names.map(async f => {
     const key = `${j.id}/${f}`;
