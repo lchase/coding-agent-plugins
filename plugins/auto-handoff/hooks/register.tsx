@@ -15,6 +15,7 @@ const BRANCH_COLOR = '#b794f4'
 const BRANCH_MAX = 24
 const CHIP_FG = '#b8aece'
 const GREEN = '#4ade80'
+const BURNT_ORANGE = '#cc5500'
 const AMBER = '#fbbf24'
 const RED = '#f87171'
 
@@ -345,7 +346,7 @@ export const register: Register = on => {
       const color = isHot ? RED : percent >= 60 ? AMBER : GREEN
       body = (
         <Box>
-          {b.model !== null && <Text dimColor>{`${modelLabel(b.model)}${b.effort !== null ? ` ${plain(b.effort)}` : ''} · `}</Text>}
+          {b.model !== null && <Text color={BURNT_ORANGE}>{`[default: ${modelLabel(b.model)}${b.effort !== null ? ` ${plain(b.effort)}` : ''}] `}</Text>}
           <Text color={color}>{`ctx ${meter(percent)} ${Math.round(percent)}% `}</Text>
           <Text dimColor>{b.phase === 'saving' ? '· saving handoff… ' : `· ${s.mode === 'auto' ? 'auto-saves' : 'saves'} at ${s.threshold}% `}</Text>
           {b.phase !== 'saving' && (
