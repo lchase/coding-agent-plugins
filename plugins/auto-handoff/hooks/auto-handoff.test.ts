@@ -1,7 +1,7 @@
 import type { On, RenderElement } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { ago, branchFromHead, isSafeGitdir, meter, objectiveOf } from './register'
+import { ago, branchFromHead, isSafeGitdir, meter, modelLabel, objectiveOf } from './register'
 
 const BAND = {
   plugin: 'auto-handoff',
@@ -36,6 +36,9 @@ const usage = (percent: number) => ({
 test('pure helpers', () => {
   expect(meter(62)).toBe('▰▰▰▰▱▱')
   expect(meter(0)).toBe('▱▱▱▱▱▱')
+  expect(modelLabel('claude-sonnet-5-5')).toBe('sonnet 5.5')
+  expect(modelLabel('claude-opus-4')).toBe('opus 4')
+  expect(modelLabel('gpt-x')).toBe('gpt-x')
   expect(ago(2 * 24 * 3600 * 1000)).toBe('2d ago')
   expect(ago(5 * 60 * 1000)).toBe('5m ago')
   expect(objectiveOf('# Handoff\n## Objective\nShip the band\n## Done')).toBe('Ship the band')

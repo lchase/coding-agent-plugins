@@ -26,7 +26,7 @@ const FALLBACK_RESUME =
   `Read ${FILE} in the current folder and continue the work from its "Exact next step". ` +
   'Summarise the objective back to me in one line first.'
 
-const IDLE: Band = { percent: null, phase: 'idle', savedAt: null, seen: 0, from: null }
+const IDLE: Band = { percent: null, phase: 'idle', savedAt: null, seen: 0, from: null, model: null, effort: null }
 const band = atom({ plugin: 'auto-handoff', key: 'band' } as const, IDLE)
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n))
@@ -44,6 +44,12 @@ const hhmm = (ms: number): string => {
   const d = new Date(ms)
   const p = (n: number) => String(n).padStart(2, '0')
   return `${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+// claude-sonnet-5-5 -> "sonnet 5.5"; unknown ids pass through
+export const modelLabel = (id: string): string => {
+  const m = id.match(/^claude-([a-z]+)-(\d+)(?:-(\d+))?/)
+  return m ? `${m[1]} ${m[2]}${m[3] ? `.${m[3]}` : ''}` : id
 }
 
 export const meter = (percent: number): string => {
@@ -181,8 +187,10 @@ export const register: Register = on => {
     const resumeFlag = (await $.store.get('resumeAfterClear')) === true
 
     // Load-time baseline: a file already there is "seen", not "just saved".
+    const model = await $.session.model().catch(() => null)
     await update($, band, () => ({
       ...IDLE,
+      model,
       seen: mtime ?? 0,
       from: mtime !== undefined && !resumeFlag ? { at: mtime, objective: '' } : null,
     }))
@@ -201,6 +209,13 @@ export const register: Register = on => {
     $.clock.every(4000, () => void detectSaved($))
 
     return next(e)
+  })
+
+  on('turn.step', async function* ($, e, next) {
+    const b = await read($, band)
+    const effort = e.effort ?? null
+    if (b.model !== e.model || b.effort !== effort) await update($, band, cur => ({ ...cur, model: e.model, effort }))
+    return yield* next(e)
   })
 
   on('prompt.submit', async ($, e, next) => {
@@ -326,6 +341,7 @@ export const register: Register = on => {
       const color = isHot ? RED : percent >= 60 ? AMBER : GREEN
       body = (
         <Box>
+          {b.model !== null && <Text dimColor>{`${modelLabel(b.model)}${b.effort !== null ? ` ${b.effort}` : ''} · `}</Text>}
           <Text color={color}>{`ctx ${meter(percent)} ${Math.round(percent)}% `}</Text>
           <Text dimColor>{b.phase === 'saving' ? '· saving handoff… ' : `· ${s.mode === 'auto' ? 'auto-saves' : 'saves'} at ${s.threshold}% `}</Text>
           {b.phase !== 'saving' && (
