@@ -167,10 +167,15 @@ export const register: Register = on => {
     if (e.props.hasSurvey || !cfg.isOn) return next(e)
 
     const { Box, Text } = $.ui.resolve(e)
+    // label column is 7 wide, the length of 'handoff', so stacked bands line up
     const chip = (
-      <Text bold color="#b8aece" backgroundColor="#3b2160">
-        {cfg.isStrict ? '  STRICT ● ' : '     REC ● '}
-      </Text>
+      <Box>
+        <Text dimColor>{'rec'.padStart(7)}</Text>
+        <Text dimColor>{' │ '}</Text>
+        <Text bold color="#f87171">● </Text>
+        <Text bold>{cfg.isStrict ? 'strict' : 'recording'}</Text>
+        <Text dimColor>{cfg.isStrict ? ' · secrets, amounts and home paths masked' : ' · secrets masked on screen'}</Text>
+      </Box>
     )
     const below = await next(e)
 

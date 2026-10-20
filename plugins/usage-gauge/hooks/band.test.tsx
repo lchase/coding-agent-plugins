@@ -34,8 +34,7 @@ test('band shows plan windows, unknown kinds and session cost on every surface',
   })
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ plugin: 'usage-gauge', surface, ...BAND })
-    const chip = await ui.find({ type: 'Text', text: /PLAN/ })
-    expect(chip).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /plan/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /34%/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /spend_limit/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /\$4\.12/ })).toBeDefined()
@@ -61,7 +60,7 @@ test('API billing shows context and cost, never zeroed windows', async ($: any, 
     const ui = await $.ui.mount({ plugin: 'usage-gauge', surface, ...BAND })
     expect(await ui.find({ type: 'Text', text: /ctx/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /\$1\.50/ })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: /PLAN|5h|week/ })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: /plan|5h|week/ })).toBeUndefined()
     await ui.unmount()
   }
 })

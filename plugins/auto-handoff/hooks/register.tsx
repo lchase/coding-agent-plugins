@@ -10,12 +10,9 @@ const DEFAULTS: Settings = { on: true, mode: 'ask', threshold: 80, hidden: false
 const FRESH_MS = 10 * 60 * 1000
 const FILE = 'HANDOFF.md'
 
-const CHIP_BG = '#3b2160'
 const BRANCH_COLOR = '#b794f4'
 const BRANCH_MAX = 24
-const CHIP_FG = '#b8aece'
 const GREEN = '#4ade80'
-const BURNT_ORANGE = '#cc5500'
 const AMBER = '#fbbf24'
 const RED = '#f87171'
 
@@ -310,9 +307,7 @@ export const register: Register = on => {
     const now = await $.clock.now()
 
     const chip = (
-      <Text bold color={CHIP_FG} backgroundColor={CHIP_BG}>
-        {' HANDOFF ⇄ '}
-      </Text>
+      <Text dimColor>{'handoff │ '}</Text>
     )
 
     let body
@@ -344,13 +339,23 @@ export const register: Register = on => {
       const percent = b.percent ?? 0
       const isHot = b.phase === 'ask' || b.phase === 'saving' || percent >= s.threshold
       const color = isHot ? RED : percent >= 60 ? AMBER : GREEN
+      // filled cells in the level color, empty cells dim
+      const cells = meter(percent)
       body = (
         <Box>
-          {b.model !== null && <Text color={BURNT_ORANGE}>{`[default: ${modelLabel(b.model)}${b.effort !== null ? ` ${plain(b.effort)}` : ''}] `}</Text>}
-          <Text color={color}>{`ctx ${meter(percent)} ${Math.round(percent)}% `}</Text>
-          <Text dimColor>{b.phase === 'saving' ? '· saving handoff… ' : `· ${s.mode === 'auto' ? 'auto-saves' : 'saves'} at ${s.threshold}% `}</Text>
-          {b.phase !== 'saving' && (
-            <Button key="save" plain hotkey="h" label="save now" onPress={() => startSave($, 'manual')} />
+          {b.model !== null && <Text dimColor>{`default: ${modelLabel(b.model)}${b.effort !== null ? ` ${plain(b.effort)}` : ''} · `}</Text>}
+          <Text dimColor>ctx </Text>
+          <Text color={color}>{cells.replace(/▱/g, '')}</Text>
+          <Text dimColor>{cells.replace(/▰/g, '')}</Text>
+          <Text color={color}>{` ${Math.round(percent)}% `}</Text>
+          {b.phase === 'saving' ? (
+            <Text dimColor>· saving handoff… </Text>
+          ) : (
+            <Box>
+              <Text dimColor>{`· ${s.mode === 'auto' ? 'auto-saves' : 'saves'} at `}</Text>
+              <Text bold color={AMBER}>{`${s.threshold}% `}</Text>
+              <Button key="save" plain hotkey="h" label="h: save now" onPress={() => startSave($, 'manual')} />
+            </Box>
           )}
         </Box>
       )

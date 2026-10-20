@@ -3,8 +3,6 @@ import type { EngineInterface, Register, RenderChildren } from 'claude-code'
 
 import type { Limit, Reading, Settings, Snapshot } from '../types'
 import {
-  CHIP_BG,
-  CHIP_FG,
   addReading,
   bar,
   colorFor,
@@ -22,11 +20,8 @@ import {
 
 const PANE = 'usage-gauge'
 const MAX_TURNS = 10
-// 11 cells, the width of auto-handoff's ' HANDOFF ⇄ ' chip, so stacked bands line up
-const CHIP_WIDTH = 11
-
-// label right-aligned, icon on the right edge
-const rightAligned = (label: string, icon: string): string => `${label} ${icon} `.padStart(CHIP_WIDTH)
+// 7 cells, the length of 'handoff', so stacked bands line up
+const LABEL_W = 7
 const DEFAULTS: Settings = { isOn: true, warnA: 75, warnB: 90 }
 
 const snap = atom({ plugin: 'usage-gauge', key: 'snap' } as const, null)
@@ -203,6 +198,13 @@ export const register: Register = on => {
 
     const { Box, Text } = $.ui.resolve(e)
     const sep = <Text dimColor> │ </Text>
+    // filled cells in the level color, empty cells dim
+    const Meter = (cells: string, color: string) => (
+      <Text>
+        <Text color={color}>{cells.replace(/▱/g, '')}</Text>
+        <Text dimColor>{cells.replace(/▰/g, '')}</Text>
+      </Text>
+    )
     const segs: RenderChildren[] = []
 
     for (const l of s.rateLimits) {
@@ -211,7 +213,7 @@ export const register: Register = on => {
       const out = l.kind === 'five_hour' ? paceOutMs(all?.[l.kind], l.resetsAt, now) : undefined
       segs.push(
         <Text>
-          {windowLabel(l.kind)} <Text color={c}>{bar(l.percentUsed, 6)} {pctText(l.percentUsed)}</Text>
+          {windowLabel(l.kind)} {Meter(bar(l.percentUsed, 6), c)} <Text bold color={c}>{pctText(l.percentUsed)}</Text>
           {at ? <Text dimColor> ↻{at}</Text> : null}
           {out !== undefined ? <Text color="#fbbf24"> ⚠ at this pace: out in {paceText(out)}</Text> : null}
         </Text>,
@@ -221,14 +223,14 @@ export const register: Register = on => {
       const pct = s.contextPercent as number
       segs.push(
         <Text>
-          <Text color={colorFor(pct)}>ctx {bar(pct, 6)} {pctText(pct)}</Text>
+          <Text dimColor>ctx</Text> {Meter(bar(pct, 6), colorFor(pct))} <Text bold color={colorFor(pct)}>{pctText(pct)}</Text>
         </Text>,
       )
     }
     if (s.costUsd !== undefined) {
       segs.push(
         <Text>
-          session {money(s.costUsd)}
+          <Text dimColor>session</Text> {money(s.costUsd)}
           {last !== undefined ? <Text dimColor> (+{money(last)})</Text> : null}
         </Text>,
       )
@@ -236,8 +238,8 @@ export const register: Register = on => {
 
     const line = (
       <Text wrap="truncate-end">
-        <Text bold color={CHIP_FG} backgroundColor={CHIP_BG}>{rightAligned(hasPlan ? 'PLAN' : 'API', '◔')}</Text>
-        {' '}
+        <Text dimColor>{(hasPlan ? 'plan' : 'api').padStart(LABEL_W)}</Text>
+        {sep}
         {segs.flatMap((seg, i) => (i === 0 ? [seg] : [sep, seg]))}
       </Text>
     )

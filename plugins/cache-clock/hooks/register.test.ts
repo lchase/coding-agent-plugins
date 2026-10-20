@@ -66,13 +66,12 @@ test('the band shows the countdown, reuse, cached tokens and the cold-rewrite es
   const ui = await $.ui.mount({ plugin: 'cache-clock', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
   const text = await lineText($, ui)
   // 180000 cached at the 1-hour write price of Opus 5.5 ($8 per MTok) = $1.44
-  expect(text).toContain('CACHE ●')
-  expect(text).toContain('warm 52m')
+  expect(text).toContain('cache │ warm 52m')
   expect(text).toContain('94% reused')
   expect(text).toContain('180k cached')
   expect(text).toContain('cold rewrite ≈ $1.44')
-  const chip = await ui.find({ type: 'Text', text: 'CACHE ●' })
-  expect(chip?.props).toMatchObject({ bold: true, color: '#b8aece', backgroundColor: '#3b2160' })
+  const label = await ui.find({ type: 'Text', text: '  cache' })
+  expect(label?.props).toMatchObject({ dimColor: true })
 })
 
 test('a subagent step counts in totals but does not restart the countdown', async ($, on) => {
@@ -116,6 +115,6 @@ test('it stacks above another mod\'s band line instead of replacing it', async (
 
   const ui = await $.ui.mount({ plugin: 'cache-clock', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
   const text = await lineText($, ui)
-  expect(text).toContain('CACHE ●')
+  expect(text).toContain('cache │')
   expect(text).toContain('other-mod line')
 })

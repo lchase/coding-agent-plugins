@@ -1,7 +1,7 @@
 import type { AgentRow, Run, Status } from '../types'
 
-export const CHIP_FG = '#b8aece'
-export const CHIP_BG = '#3b2160'
+// label column width, the length of 'handoff', so stacked bands line up
+export const LABEL_W = 7
 export const SKILL_COLOR = '#a3e635'
 export const TASK_MAX = 22
 export const MAIN = 'main'
@@ -111,7 +111,7 @@ export const helpers = (run: Run): AgentRow[] =>
   run.order.filter(id => id !== MAIN).map(id => run.agents[id] as AgentRow)
 
 function agentSegs(a: AgentRow, withTask: boolean): Seg[] {
-  const out: Seg[] = [{ t: a.type, bold: a.id === MAIN }]
+  const out: Seg[] = [{ t: '● ', color: modelColor(a.model) }, { t: a.type, bold: a.id === MAIN }]
   if (a.model) out.push({ t: ' ' }, { t: a.model, color: modelColor(a.model) })
   if (withTask && a.id !== MAIN && a.task) out.push({ t: ` "${cut(a.task)}"` })
   out.push({ t: ' ' }, { t: statusMark(a.status), color: statusColor(a.status) })
@@ -134,7 +134,7 @@ export function bandSegs(run: Run, columns: number): Seg[] {
   let skillsShown = run.skills.length
 
   const build = (): Seg[] => {
-    const segs: Seg[] = [{ t: '  AGENTS ◎ ', bold: true, color: CHIP_FG, bg: CHIP_BG }, { t: ' ' }, ...agentSegs(main, false)]
+    const segs: Seg[] = [{ t: 'agents'.padStart(LABEL_W), dim: true }, SEP, ...agentSegs(main, false)]
     const visible = all.slice(0, all.length - hidden)
     if (visible.length > 0 || hidden > 0) {
       segs.push(SEP)
