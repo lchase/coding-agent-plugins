@@ -66,23 +66,23 @@ test('off leaves everything as the engine draws it', async ($: any, on: any) => 
   await ui.unmount()
 })
 
-test('chip stacks on other lines, only while on', async ($: any, on: any) => {
+test('band stacks on other lines, only while on', async ($: any, on: any) => {
   engine(on)
   for (const surface of ['terminal', 'desktop'] as const) {
     const off = await $.ui.mount({ ...bandProps, surface })
-    expect(await off.find({ type: 'Text', text: /REC/ })).toBeUndefined()
+    expect(await off.find({ type: 'Text', text: /recording/ })).toBeUndefined()
     await off.unmount()
   }
   await $.command.run({ command: 'rec', args: '' })
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...bandProps, surface })
-    expect(await ui.find({ type: 'Text', text: / REC ● / })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /recording/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /another mod line/ })).toBeDefined()
     await ui.unmount()
   }
   await $.command.run({ command: 'rec', args: 'off' })
   const gone = await $.ui.mount({ ...bandProps, surface: 'terminal' })
-  expect(await gone.find({ type: 'Text', text: /REC/ })).toBeUndefined()
+  expect(await gone.find({ type: 'Text', text: /recording/ })).toBeUndefined()
   await gone.unmount()
 })
 

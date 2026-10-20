@@ -45,12 +45,12 @@ async function play($: any) {
   await $.turn.complete({ reason: 'answer', turnId: 't1', agentId: 'id-find the hooks', answer: 'ok' } as any)
 }
 
-test('band shows chip, agents and one skill on terminal and desktop, stacked on other lines', async ($: any, on: any) => {
+test('band shows label, agents and one skill on terminal and desktop, stacked on other lines', async ($: any, on: any) => {
   engine(on)
   await play($)
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...bandProps(200), surface })
-    expect(await ui.find({ type: 'Text', text: / AGENTS ◎ / })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /^ +agents$/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /fact-checker/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /"check the prices"/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /^watch$/ })).toBeDefined()
@@ -67,7 +67,7 @@ test('task text is dropped first at a narrow width, oldest first', async ($: any
     expect(await wide.find({ type: 'Text', text: /"check the prices"/ })).toBeDefined()
     await wide.unmount()
 
-    const narrow = await $.ui.mount({ ...bandProps(115), surface })
+    const narrow = await $.ui.mount({ ...bandProps(125), surface })
     expect(await narrow.find({ type: 'Text', text: /"find the hooks"/ })).toBeDefined()
     expect(await narrow.find({ type: 'Text', text: /"check the prices"/ })).toBeUndefined()
     expect(await narrow.find({ type: 'Text', text: /fact-checker/ })).toBeDefined()
@@ -95,13 +95,13 @@ test('off hides the band, clear forgets the turn, help lists commands', async ($
   const off = await $.command.run({ command: 'agent-watch', args: 'off' })
   expect(off.text).toContain('off')
   const ui = await $.ui.mount({ ...bandProps(200), surface: 'terminal' })
-  expect(await ui.find({ type: 'Text', text: / AGENTS ◎ / })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /^ +agents$/ })).toBeUndefined()
   await ui.unmount()
 
   await $.command.run({ command: 'agent-watch', args: 'on' })
   await $.command.run({ command: 'agent-watch', args: 'clear' })
   const empty = await $.ui.mount({ ...bandProps(200), surface: 'terminal' })
-  expect(await empty.find({ type: 'Text', text: / AGENTS ◎ / })).toBeUndefined()
+  expect(await empty.find({ type: 'Text', text: /^ +agents$/ })).toBeUndefined()
   await empty.unmount()
 
   const help = await $.command.run({ command: 'agent-watch', args: 'help' })

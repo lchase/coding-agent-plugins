@@ -11,12 +11,11 @@ const lastStep = atom({ plugin: 'cache-clock', key: 'last' } as const, null as L
 const totals = atom({ plugin: 'cache-clock', key: 'totals' } as const, { reads: 0, writes: 0, fresh: 0, saved: 0, unpricedReads: 0 } as Totals)
 const isOn = atom({ plugin: 'cache-clock', key: 'isOn' } as const, true)
 
-const CHIP_BG = '#3b2160'
-const CHIP_FG = '#b8aece'
+// 7 cells, the length of 'handoff', so stacked bands line up
+const LABEL_W = 7
 const GREEN = '#22c55e'
 const AMBER = '#f59e0b'
 const RED = '#ef4444'
-const GREY = '#c0c0c0'
 const AMBER_AT = 15 * MIN
 
 const cost = (c: number | null) => (c === null ? '≈ ?' : `≈ ${usd(c)}`)
@@ -141,19 +140,20 @@ export const register: Register = (on, options) => {
       }
     }
 
+    // filled cells in the state color, empty cells dim
+    const cells = bar(left, ttl)
     const line = (
       <Box>
-        <Text bold color={CHIP_FG} backgroundColor={CHIP_BG}>
-          {'   CACHE ● '}
-        </Text>
+        <Text dimColor>{'cache'.padStart(LABEL_W)}</Text>
+        <Text dimColor>{' │ '}</Text>
         <Text bold color={color}>
-          {left > 0 ? ` warm ${mins(left)} ` : ' COLD '}
+          {left > 0 ? `warm ${mins(left)} ` : 'COLD '}
         </Text>
-        <Text color={color}>{bar(left, ttl)}</Text>
-        <Text color={GREY}>
-          {` ${reusedPct(last.reads, last.writes, last.fresh)}% reused · ${tok(cached)} cached · cold rewrite ${cost(coldRewrite(last, cached, ttlMinutes))} `}
-        </Text>
-        <Button key="compact" label="Compact" onPress={compact} />
+        <Text color={color}>{cells.replace(/▱/g, '')}</Text>
+        <Text dimColor>{cells.replace(/▰/g, '')}</Text>
+        <Text>{` ${reusedPct(last.reads, last.writes, last.fresh)}% reused`}</Text>
+        <Text dimColor>{` · ${tok(cached)} cached · cold rewrite ${cost(coldRewrite(last, cached, ttlMinutes))} `}</Text>
+        <Button key="compact" plain label="[ Compact ]" onPress={compact} />
       </Box>
     )
     if (!below) return line

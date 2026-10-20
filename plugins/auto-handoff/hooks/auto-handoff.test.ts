@@ -57,15 +57,15 @@ test('pure helpers', () => {
   expect(isSafeGitdir('C:\\r\\.git\\worktrees\\x')).toBe(true)
 })
 
-test('band shows chip, meter and threshold on terminal and desktop', async ($, on) => {
+test('band shows label, meter and threshold on terminal and desktop', async ($, on) => {
   engine(on)
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface })
     await $.session.measure(usage(62))
     await ui.redraw()
-    const text = (await ui.find({ type: 'Text', text: /HANDOFF/ }))?.text ?? ''
-    expect(text).toContain('HANDOFF ⇄')
-    expect(await ui.find({ type: 'Text', text: /ctx ▰▰▰▰▱▱ 62%/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /handoff │/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /^▰▰▰▰$/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /62%/ })).toBeDefined()
     expect(await ui.find({ key: 'save' })).toBeDefined()
     // Stacked on top of the other mod's line, not replacing it.
     expect(await ui.find({ type: 'Text', text: /another mod line/ })).toBeDefined()
@@ -79,6 +79,7 @@ test('ask mode: crossing the threshold keeps the meter and arms the save', async
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
   await $.session.measure(usage(85))
   await ui.redraw()
-  expect(await ui.find({ type: 'Text', text: /ctx ▰▰▰▰▰▱ 85%/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^▰▰▰▰▰$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /85%/ })).toBeDefined()
   await ui.unmount()
 })
