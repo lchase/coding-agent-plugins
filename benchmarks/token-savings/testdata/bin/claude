@@ -1,0 +1,4 @@
+#!/bin/sh
+# Guard used by check.sh. A real run must not reach this binary.
+printf '%s\n' "claude should not have been invoked" >> "${CLAUDE_SENTINEL:?}"
+exit 99

@@ -1,0 +1,1 @@
+Do not edit any source files. Write a file ANSWER.md at the repo root explaining, in under 300 words, the order in which Click resolves a parameter's value (command line, environment variable, default_map, default), naming the functions/methods in src/click/core.py that implement each step and the ParameterSource values involved.

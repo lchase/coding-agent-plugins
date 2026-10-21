@@ -22,3 +22,15 @@ jobs:
         run: node plugins/test-drive/scripts/redact.test.mjs
       - name: plugin version bumps
         run: ./scripts/check-version-bumps.sh "origin/${{ github.base_ref }}"
+
+  token-savings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: token-savings offline checks
+        run: ./benchmarks/token-savings/check.sh
