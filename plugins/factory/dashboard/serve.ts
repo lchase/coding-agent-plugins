@@ -27,6 +27,8 @@ if (!arg) {
   await Bun.write(registry, JSON.stringify(known, null, 2));
 }
 
+const version: string = (await Bun.file(`${import.meta.dir}/../.claude-plugin/plugin.json`).json()).version;
+
 async function board() {
   const jobs = [];
   for (const root of await roots())
@@ -35,7 +37,7 @@ async function board() {
       jobs.push({ ...j, repo: repoOf(root), key: `${repoOf(root)}/${j.id}` });
     }
   jobs.sort((a, b) => a.key.localeCompare(b.key));
-  return Response.json({ jobs }, { headers: { "cache-control": "no-store" } });
+  return Response.json({ jobs, version }, { headers: { "cache-control": "no-store" } });
 }
 
 try {
