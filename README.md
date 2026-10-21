@@ -4,7 +4,7 @@ Lawrence Chase's Claude Code marketplace: code review, diagram, test-evidence an
 factory skills, plus a set of small Claude Code mods that add band lines and panes to the terminal UI.
 
 ```
-/plugin marketplace add lchase/skills
+/plugin marketplace add lchase/coding-agent-plugins
 /plugin install smart-review@lchase
 /plugin install tldraw@lchase
 /plugin install test-drive@lchase
@@ -49,7 +49,7 @@ Nuclear option, re-register the whole marketplace:
 
 ```
 /plugin marketplace remove lchase
-/plugin marketplace add lchase/skills
+/plugin marketplace add lchase/coding-agent-plugins
 /plugin install smart-review@lchase
 /plugin install tldraw@lchase
 ```
@@ -64,7 +64,7 @@ registration first:
 /plugin uninstall smart-review
 /plugin uninstall tldraw            # only if you installed the short-lived tldraw@chase
 /plugin marketplace remove chase
-/plugin marketplace add lchase/skills
+/plugin marketplace add lchase/coding-agent-plugins
 /plugin install smart-review@lchase
 /plugin install tldraw@lchase
 ```
@@ -76,7 +76,7 @@ The tldraw skill's command also changed: `/tldraw:tldraw` → **`/tldraw:diagram
 | [**smart-review**](plugins/smart-review/) | Ensemble code review: six specialized lenses over a diff, merged into one deduplicated, severity-ranked verdict | `/smart-review:{review,min,max,add-pr-review,review-pr-comments}` + auto-trigger | Claude Code, Cursor, Codex, Gemini CLI, any AGENTS.md agent |
 | [**tldraw**](plugins/tldraw/) | Natural-language description → editable tldraw document (`.tldr`) + rendered PNG/SVG | `/tldraw:diagram` + auto-trigger | Claude Code only (needs Node + `npx`) |
 | [**test-drive**](plugins/test-drive/) | Before/after evidence of a UI or API change: record the app before you edit, replay the same scripted scenario after, with a deterministic verdict | `/test-drive:{baseline,compare}` + auto-trigger | Claude Code only (needs Node; UI also needs Playwright and ffmpeg) |
-| [**cache-clock**](plugins/cache-clock/) | Mod: band line showing whether the prompt cache is warm, with countdown, reuse %, cached tokens, and estimated cold-rewrite cost | Compact button, `/cache-clock` | Claude Code only |
+| [**cache-clock**](plugins/cache-clock/) | Mod: band line showing whether the prompt cache is warm. TTL, expiry, hit ratio, and re-cache size come from Claude Code when the status-line bridge is installed; otherwise the countdown is a marked estimate | Compact button (warm only), `/cache-clock` | Claude Code only |
 | [**usage-gauge**](plugins/usage-gauge/) | Mod: band line with plan usage windows (5-hour, weekly, spend limit), reset times, pace warning, session cost on API billing, threshold toasts | `/usage-gauge` (detail pane) | Claude Code only |
 | [**auto-handoff**](plugins/auto-handoff/) | Mod: band line showing how full the chat is; saves a `HANDOFF.md` at a threshold (auto or on request), then clear and continue or resume in a new session | `/auto-handoff` | Claude Code only |
 | [**agent-watch**](plugins/agent-watch/) | Mod: band line showing who is doing the work this turn (main chat, helper agents, models, tasks, status, skills), plus a pane with per-agent blocks, per-model totals, timeline | `/agent-watch` | Claude Code only |
@@ -107,10 +107,10 @@ directory, so no skill content is copied or forked.
 
 | Harness | Install | `min` | `max` | Slash commands / auto-trigger |
 |---|---|---|---|---|
-| Claude Code | `/plugin marketplace add lchase/skills` then `/plugin install smart-review@lchase` | ✅ | ✅ isolated parallel subagents | ✅ |
+| Claude Code | `/plugin marketplace add lchase/coding-agent-plugins` then `/plugin install smart-review@lchase` | ✅ | ✅ isolated parallel subagents | ✅ |
 | Cursor | point Cursor at `plugins/smart-review/.cursor-plugin/` | ✅ | ✅ sequential ensemble | via session-start hook |
 | Codex | `plugins/smart-review/.codex-plugin/` manifest | ✅ | ✅ sequential ensemble | no |
-| Gemini CLI | `gemini extensions install https://github.com/lchase/skills` (reads root `gemini-extension.json`) | ✅ | ✅ sequential ensemble | via `GEMINI.md` |
+| Gemini CLI | `gemini extensions install https://github.com/lchase/coding-agent-plugins` (reads root `gemini-extension.json`) | ✅ | ✅ sequential ensemble | via `GEMINI.md` |
 | Any AGENTS.md agent | reads root [`AGENTS.md`](AGENTS.md) | ✅ | ✅ sequential ensemble | no |
 
 `max`'s isolated parallel subagents are a Claude Code capability. A model panel
@@ -185,9 +185,11 @@ Five small plugins that change Claude Code's own interface instead of adding a t
 Each draws a band line above the prompt (some add a side pane or slash command), is
 independent of the others, and works on Claude Code only.
 
-- **cache-clock**: is the prompt cache still warm? Countdown, reuse percentage, cached
-  tokens, and the estimated cost of a cold rewrite, with a Compact button. Config:
-  `cacheMinutes` (5 or 60, default 60) to match your cache TTL.
+- **cache-clock**: is the prompt cache still warm? After `/cache-clock setup`, the countdown,
+  TTL, hit ratio, re-cache size, and last miss cause come from Claude Code's own `prompt_cache`
+  (v2.1.251+). Without that, the band uses your `promptCacheTtl` or cache environment variables,
+  and only then a fallback (`cacheMinutes`, default 5) marked with `?`. Compact is offered only
+  while the cache is warm. Dollar figures stay hand-kept list-price estimates.
 - **usage-gauge**: plan usage windows (5-hour, weekly, spend limit) with reset times and a
   pace warning; session cost on API billing; threshold toasts. `/usage-gauge` opens a detail pane.
 - **auto-handoff**: watches context fill and saves a `HANDOFF.md` at a threshold (automatically
@@ -201,6 +203,51 @@ independent of the others, and works on Claude Code only.
 ```
 /plugin install cache-clock@lchase    # or usage-gauge, auto-handoff, agent-watch, recording-mode
 ```
+
+### cache-clock and the status line
+
+Claude Code tells a status-line script whether the prompt cache is warm, when it expires,
+and the session hit ratio (`prompt_cache` on the status-line JSON, v2.1.251 or later).
+A plugin cannot register a status line, and the mods API does not include those fields, so
+cache-clock reads them through a small bridge.
+
+In Claude Code, run:
+
+```
+/cache-clock setup
+```
+
+That edits your user settings (`~/.claude/settings.json`, or `$CLAUDE_CONFIG_DIR/settings.json`
+when that variable is set). It saves whatever `statusLine` was there and points `statusLine`
+at `cache-clock/bridge.mjs`, which still runs your previous status line and writes Claude
+Code's `prompt_cache` for the band to read. `/cache-clock remove` puts the previous value back.
+`node` must be on `PATH`. Setup refuses to edit a status line that comes from managed settings,
+`--settings`, or a project or local settings file.
+
+The same edit by hand, when you have no status line yet:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "node ~/.claude/cache-clock/bridge.mjs"
+  }
+}
+```
+
+Run `/cache-clock setup` once so the script is copied into that folder. After the next reply
+the band's TTL and expiry are Claude Code's figures, not a guess. The band redraws every 30
+seconds from the last `expires_at`. Claude Code also re-runs the status line on its own
+events, and when a warm cache reaches `expires_at`.
+
+Until the bridge is installed, the band still works. It follows this order: `prompt_cache`
+if the bridge has written it, then `FORCE_PROMPT_CACHING_5M`, `CLAUDE_CODE_PROMPT_CACHE_TTL`,
+the `promptCacheTtl` setting, `ENABLE_PROMPT_CACHING_1H`, then the `cacheMinutes` option
+(5 or 60, default 5). Only that last step is marked with `?`. A subscription within plan
+usage is often 60 minutes and an API key, cloud provider, or usage-credit session is often
+5. The option cannot see a mid-session change; the bridge can.
+
+`/cache-clock status` names which of those sources the band is using.
 
 ---
 
@@ -295,6 +342,8 @@ benchmarks/token-savings/         # paired Claude Code cost benchmark (not a plu
 claude plugin validate .                                # marketplace + all plugins
 ./plugins/smart-review/scripts/validate-adapters.sh      # smart-review's per-harness manifests
 ./benchmarks/token-savings/check.sh                      # benchmark lint and graders; no API spend
+claude plugin test plugins/cache-clock                   # mod tests, including the native prompt_cache path
+node --test plugins/cache-clock/statusline/bridge.test.mjs
 ```
 
 **Releasing:** users only get an update when a plugin's `version` string changes, so bump

@@ -54,7 +54,7 @@
     {
       "name": "cache-clock",
       "source": "./plugins/cache-clock",
-      "description": "Claude Code mod: a band line showing whether the prompt cache is still warm, with countdown, reuse percentage, cached tokens, and estimated cold-rewrite cost, plus a Compact button and /cache-clock command.",
+      "description": "Claude Code mod: a band line showing whether the prompt cache is still warm. With /cache-clock setup, TTL, expiry, hit ratio, and re-cache size come from Claude Code's prompt_cache; otherwise the countdown is a marked estimate. Compact button and /cache-clock command.",
       "category": "productivity",
       "keywords": [
         "cache",

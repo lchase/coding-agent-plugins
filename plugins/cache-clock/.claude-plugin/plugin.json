@@ -1,16 +1,16 @@
 {
   "name": "cache-clock",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "author": { "name": "Lawrence Chase" },
-  "description": "Band line showing whether Claude's prompt cache is still warm, with countdown, reuse, and estimated cold-rewrite cost",
+  "description": "Band line showing whether Claude's prompt cache is still warm. TTL, expiry, and hit ratio come from Claude Code's prompt_cache when /cache-clock setup is installed; otherwise the countdown is an estimate.",
   "types": "./types/index.d.ts",
   "userConfig": {
     "cacheMinutes": {
       "type": "string",
-      "title": "Cache lifetime in minutes",
-      "description": "How long the prompt cache stays warm after a request: 5 (default TTL) or 60 (1-hour TTL).",
+      "title": "Fallback cache lifetime in minutes",
+      "description": "Used only when Claude Code's prompt_cache is unavailable (run /cache-clock setup) and no promptCacheTtl, CLAUDE_CODE_PROMPT_CACHE_TTL, FORCE_PROMPT_CACHING_5M, or ENABLE_PROMPT_CACHING_1H is set. 5 = API key, cloud provider, or usage credits. 60 = Claude subscription within plan. The band marks this guess with ?.",
       "options": ["5", "60"],
-      "default": "60"
+      "default": "5"
     }
   }
 }
