@@ -61,6 +61,7 @@
   .num { font-family: var(--mono); font-size: 12px; line-height: 16px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--live); flex: none; animation: pulse 1.6s ease-in-out infinite; }
   .flag { margin-left: auto; padding: 0 6px; border-radius: 4px; background: color-mix(in srgb, var(--human) 18%, transparent); color: var(--human); font-size: 11px; font-weight: 500; letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; }
+  .repo { margin: -2px 0 6px; }
   .title { font-size: 14px; line-height: 20px; margin: 0 0 6px; font-weight: 500; }
   .branch { font-family: var(--mono); font-size: 12px; line-height: 16px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .rounds { margin-top: 12px; display: grid; gap: 4px; }
@@ -71,6 +72,10 @@
   .chip.PASS { border-color: transparent; color: var(--pass); background: color-mix(in srgb, var(--pass) 18%, transparent); }
   .chip.CHANGES { border-color: transparent; color: var(--changes); background: color-mix(in srgb, var(--changes) 18%, transparent); }
   .note { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-strong); font-size: 12px; line-height: 16px; color: var(--muted); overflow-wrap: anywhere; }
+  .cmd { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+  .cmd code { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .copy { flex: none; cursor: pointer; font-family: var(--mono); font-size: 11px; line-height: 16px; padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--muted); }
+  .copy:hover { background: var(--card-hover); color: var(--ink); }
   .note code { font-family: var(--mono); font-size: 11px; color: var(--code); }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
   @media (prefers-reduced-motion: reduce) { .pulse, .chip.wait, .status::before { animation: none; } }
@@ -167,19 +172,22 @@ function chips(n, v, waiting) {
     return `<span class="chip ${cls}" title="${k}: ${esc(v[k] || "pending")}">${s}</span>`;
   }).join("") + `</div>`;
 }
+const cmd = c => `<span class="cmd"><code>${esc(c)}</code><span class="copy" role="button" tabindex="0" data-copy="${esc(c)}" title="Copy" aria-label="Copy command">copy</span></span>`;
 function card(j) {
   const live = LIVE.has(j.stage), human = j.stage === "needs-human" || j.stage === "ready";
   const rows = (j.rounds || []).map((v, i) => chips(i + 1, v, false));
-  if (j.round > 0 && j.reviews) rows.push(chips(j.round, j.reviews, j.stage === "review"));
+  const cur = j.reviews && REVIEWERS.some(([k]) => j.reviews[k] === "PASS" || j.reviews[k] === "CHANGES");
+  if (j.round > rows.length && j.reviews && (cur || j.stage === "review")) rows.push(chips(j.round, j.reviews, j.stage === "review"));
   const pr = j.pr ? `<div class="branch">PR #${esc(j.pr.number)}</div>` : "";
   const note = j.stage === "ready" ? `<div class="note">${esc(j.note || "all clear")}<br>${j.pr ? esc(j.pr.url) : ""}</div>`
-             : j.stage === "pr-open" ? `<div class="note">${j.note ? esc(j.note) + "<br>" : ""}<code>/factory pr-sync ${esc(j.id)}</code></div>`
-             : human ? `<div class="note">${j.note ? esc(j.note) + "<br>" : ""}<code>/factory approve ${esc(j.id)}</code></div>`
+             : j.stage === "pr-open" ? `<div class="note">${j.note ? esc(j.note) + "<br>" : ""}${cmd(`/factory pr-sync ${j.id}`)}</div>`
+             : human ? `<div class="note">${j.note ? esc(j.note) + "<br>" : ""}${cmd(`/factory approve ${j.id}`)}</div>`
              : j.note ? `<div class="note">${esc(j.note)}</div>` : "";
-  return `<button class="card ${live ? "live" : ""} ${human ? "human" : ""} ${j.stage === "merged" ? "merged" : ""}" data-job="${esc(j.id)}">
+  return `<div role="button" tabindex="0" class="card ${live ? "live" : ""} ${human ? "human" : ""} ${j.stage === "merged" ? "merged" : ""}" data-job="${esc(j.key)}">
     <div class="card-top">${live ? '<span class="pulse" aria-label="running"></span>' : ""}<span class="num">${esc(j.id)}</span>${human ? '<span class="flag">your call</span>' : ""}</div>
+    <div class="branch repo">${esc(j.repo)}</div>
     <p class="title">${esc(j.title || j.id)}</p><div class="branch">${esc(j.branch || "")}</div>${pr}
-    ${rows.length ? `<div class="rounds">${rows.join("")}</div>` : ""}${note}</button>`;
+    ${rows.length ? `<div class="rounds">${rows.join("")}</div>` : ""}${note}</div>`;
 }
 function render() {
   const html = STAGES.map(([k, label, who, cls]) => {
@@ -207,12 +215,12 @@ const tone = first => /^(VERDICT:\s*PASS|APPROVE|STATUS:\s*READY)$/.test(first) 
 const texts = new Map(); // "<job>/<file>" -> content; reviews are immutable once written, so cached
 
 async function fetchJobFile(j, f) {
-  const r = await fetch(`jobs/${encodeURIComponent(j.id)}/${f}`, { cache: "no-store" });
+  const r = await fetch(`jobs/${j.key.split("/").map(encodeURIComponent).join("/")}/${f}`, { cache: "no-store" });
   return r.ok ? r.text() : null;
 }
 async function refreshDrawer() {
-  const j = jobs.find(x => x.id === openId); if (!j) return;
-  $("d-num").textContent = `${j.id} · ${j.stage}${j.round ? ` · round ${j.round}` : ""}`;
+  const j = jobs.find(x => x.key === openId); if (!j) return;
+  $("d-num").textContent = `${j.key} · ${j.stage}${j.round ? ` · round ${j.round}` : ""}`;
   $("d-title").textContent = j.title || j.id; $("d-branch").textContent = j.branch || "";
 
   const rounds = Math.max(j.round || 0, (j.rounds || []).length);
@@ -220,7 +228,7 @@ async function refreshDrawer() {
   for (let n = 1; n <= rounds; n++) for (const [k] of [...REVIEWERS, ["human"], ["pr"]]) names.push(`round-${n}/review-${k}.md`);
   const files = [];
   await Promise.all(names.map(async f => {
-    const key = `${j.id}/${f}`;
+    const key = `${j.key}/${f}`;
     if (!texts.has(key) || f === openPath || !f.includes("/")) {
       const t = await fetchJobFile(j, f);
       if (t === null) { texts.delete(key); return; }
@@ -236,20 +244,25 @@ async function refreshDrawer() {
     const g = f.includes("/") ? f.split("/")[0].replace("round-", "Round ") : "Job";
     const head = g !== group ? `<div class="group">${esc(g)}</div>` : ""; group = g;
     const label = f.includes("/") ? f.split("/")[1].replace(/^review-|\.md$/g, "") : f;
-    return `${head}<button class="file ${f === openPath ? "on" : ""}" data-file="${esc(f)}"><span class="dot ${tone((texts.get(`${j.id}/${f}`) || "").split("\n")[0].trim())}"></span>${esc(label)}</button>`;
+    return `${head}<button class="file ${f === openPath ? "on" : ""}" data-file="${esc(f)}"><span class="dot ${tone((texts.get(`${j.key}/${f}`) || "").split("\n")[0].trim())}"></span>${esc(label)}</button>`;
   }).join("") || '<div class="empty">No files yet.</div>';
 
-  const text = openPath ? texts.get(`${j.id}/${openPath}`) : null;
+  const text = openPath ? texts.get(`${j.key}/${openPath}`) : null;
   if (text !== openText) { openText = text; $("d-doc").innerHTML = text == null ? '<p class="empty">Nothing written yet.</p>' : markdown(text); }
 }
 function openDrawer(id) { openId = id; openPath = null; openText = undefined; document.body.classList.add("open"); refreshDrawer(); }
 function closeDrawer() { openId = null; document.body.classList.remove("open"); }
 document.addEventListener("click", e => {
+  const cp = e.target.closest("[data-copy]");
+  if (cp) { navigator.clipboard?.writeText(cp.dataset.copy); cp.textContent = "copied"; setTimeout(() => { cp.textContent = "copy"; }, 1200); return; }
   const c = e.target.closest("[data-job]"); if (c) return openDrawer(c.dataset.job);
   const f = e.target.closest("[data-file]"); if (f) { openPath = f.dataset.file; openText = undefined; $("d-doc").parentElement.scrollTop = 0; return refreshDrawer(); }
   if (e.target.closest("[data-close]")) closeDrawer();
 });
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeDrawer(); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeDrawer();
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches?.(".card, .copy")) { e.preventDefault(); e.target.click(); }
+});
 
 // ---- markdown: headings, fences, lists (+ tasks), tables, paragraphs, inline code/bold/links ----
 function inline(s) {

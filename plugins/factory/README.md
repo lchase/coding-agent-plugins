@@ -226,7 +226,9 @@ bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts"
 bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts" example
 ```
 
-The board is at <http://localhost:8765>. Eight columns (Spec, Build, Review, Approve, PR review, Ready, Merged, Needs human);
+The board is at <http://localhost:8765>. It is one board for every repo: each run registers the current repo in
+`~/.factory/repos.json` (stale paths are skipped), a second repo's `serve` just joins the running board, and cards
+are keyed `repo/job-id`. Eight columns (Spec, Build, Review, Approve, PR review, Ready, Merged, Needs human);
 each review round is a row of four chips that fill in as verdicts land; needs-human cards are
 highlighted with the command to run. Click a card for a drawer with every file of that job,
 rendered. It polls every two seconds, so leave it open while jobs run.
