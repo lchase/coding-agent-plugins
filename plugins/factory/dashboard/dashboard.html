@@ -37,6 +37,7 @@
   header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; min-height: 56px; padding: 0 24px; border-bottom: 1px solid var(--line); }
   .brand { display: flex; align-items: center; gap: 12px; }
   .logo { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); display: inline-flex; align-items: center; justify-content: center; }
+  .ver { font-size: 12px; line-height: 16px; color: var(--faint); align-self: flex-end; margin: 0 0 4px -4px; }
   h1 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 500; }
   .status { font-family: var(--mono); font-size: 12px; line-height: 16px; color: var(--muted); }
   .status::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--live); margin-right: 8px; vertical-align: 0; animation: pulse 1.6s ease-in-out infinite; }
@@ -135,7 +136,7 @@
 </style>
 </head>
 <body>
-<header><div class="brand"><span class="logo" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V6l5-3 5 3v6l-5 3-5-3z"/><path d="M3 6l5 3 5-3M8 9v6"/></svg></span><h1>Factory</h1></div><div class="status" id="status">connecting…</div></header>
+<header><div class="brand"><span class="logo" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V6l5-3 5 3v6l-5 3-5-3z"/><path d="M3 6l5 3 5-3M8 9v6"/></svg></span><h1>Factory</h1><span class="ver" id="ver"></span></div><div class="status" id="status">connecting…</div></header>
 <main class="board" id="board"></main>
 <footer>
   <span>/factory &lt;feature&gt;</span><span>/factory next</span>
@@ -202,7 +203,8 @@ async function poll() {
   try {
     const r = await fetch("board.json", { cache: "no-store" });
     if (!r.ok) throw new Error(`board.json: HTTP ${r.status}`);
-    jobs = (await r.json()).jobs || [];
+    const data = await r.json(); jobs = data.jobs || [];
+    if (data.version) document.getElementById("ver").textContent = `v${data.version}`;
     render();
     if (openId) await refreshDrawer();
     st.className = "status"; st.textContent = `${jobs.length} jobs · ${new Date().toLocaleTimeString()}`;
