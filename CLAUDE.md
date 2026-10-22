@@ -200,8 +200,10 @@ Key structural pieces, all under `skills/smart-review/references/`:
   dispatch time, and does not bake `model:` into reviewer frontmatter. **Each reviewer agent is a Claude Code packaging of a `references/lenses/*.md`
   checklist, so keep the two in sync;** `validate-adapters.sh` checks the reference link exists.
 
-Because subagents cannot spawn subagents, the **top-level agent is always the orchestrator**
-in `max`. There is no "lead reviewer" subagent doing the fan-out.
+The agent running the skill is the orchestrator in `max`, and reviewers never spawn their own
+subagents. That agent may itself be a subagent: Claude Code allows nested subagents (three
+layers deep by default since 2.1.219), so another plugin such as factory can run smart-review
+`max` from inside one of its stages. There is still no "lead reviewer" subagent doing the fan-out.
 
 ## Working on this repo
 

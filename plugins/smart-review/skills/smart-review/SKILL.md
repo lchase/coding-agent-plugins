@@ -87,7 +87,7 @@ One agent, one context, no fan-out.
 
 ## max workflow
 
-The orchestrated ensemble. **The top-level agent is the orchestrator** — subagents cannot spawn subagents, so fan out from here, then collect.
+The orchestrated ensemble. **The agent running this skill is the orchestrator**: it fans the lenses out, then collects; reviewers never spawn their own. That agent can be the top-level session or a subagent, since Claude Code allows nested subagents (three layers deep by default since 2.1.219; `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1` turns nesting off). Where it cannot dispatch, the capability check in `references/ensemble.md` picks the sequential variant.
 
 1. Scope the diff and find the spec (Steps 1-2). Note triggered domain checklists and state them in one line with the reason, same as `min`. This is what goes into each subagent's prompt, so get it right before fanning out. Write the one-paragraph intent the ensemble template requires (`references/ensemble.md`) before fanning out. If you cannot write it, ask.
 2. Run the ensemble per `references/ensemble.md`. That file has the capability check (isolated parallel subagents if this harness supports them, otherwise a sequential lens walk) and the model panel. Claude Code dispatches the bundled `agents/*-reviewer.md` and passes `model` at dispatch time when the panel is on. Default is single-model max (`panel: off`). Both paths keep the spec-gate and all six lenses. No personas: extra signal is model diversity, configured as `panel: on` (same template to each model) or `panel: per-lens`.
