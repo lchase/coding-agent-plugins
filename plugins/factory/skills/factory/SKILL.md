@@ -1,6 +1,6 @@
 ---
 name: factory
-description: Run a feature or bug through the software factory loop (spec, build, 4 parallel reviews, approve, then a pull request or a local merge) on its own branch. Use for /factory <feature | path.md | JIRA-123 | #issue>, /factory next, /factory approve <job-id>, /factory rework <job-id> <note>, /factory pr-sync <job-id>, /factory setup, /factory serve.
+description: Run a feature or bug through the software factory loop (spec, build, 4 parallel reviews, approve, then a pull request or a local merge) on its own branch. Use for /factory <feature | path.md | JIRA-123 | #issue>, /factory next, /factory approve <job-id>, /factory rework <job-id> <note>, /factory pr-sync <job-id>, /factory watch, /factory setup, /factory serve.
 disable-model-invocation: true
 ---
 
@@ -117,6 +117,7 @@ main checkout.
 | `/factory approve <job-id>` | Deliver a `needs-human` job as it is (step 7: opens the PR, or merges locally) |
 | `/factory rework <job-id> <note>` | `N` = highest `round-<k>` folder. Write `round-N+1/review-human.md` (`VERDICT: CHANGES`, blank line, the note verbatim), stage `build`, resume builder with the step 5 message for round `N+1`; reviews then run as round `N+2` |
 | `/factory pr-sync <job-id>` | One pass over the job's open PR (step 8): feedback in, fixes out, ready check |
+| `/factory watch` | One step 8 pass over every job with an open PR (step 9); `/loop /factory watch` keeps it running |
 | `/factory serve [example]` | Start the dashboard in the background and open it in the browser (see Dashboard) |
 
 ## /factory setup
@@ -224,8 +225,8 @@ in step 5. `<wt>` and `<branch>` below are the `worktree` and `branch` fields of
    If the merge fails: `git reset --merge`, stage `needs-human`, `note` = why. On success set stage `merged`, report the
    commit hash. Do not push.
 
-8. **PR sync** (`/factory pr-sync <id>`, only for a job with `pr` set; run it again, or `/loop /factory pr-sync <id>`,
-   whenever reviewers have had a chance to respond). One pass, then stop. The factory never merges the PR and never
+8. **PR sync** (`/factory pr-sync <id>`, only for a job with `pr` set; run it again, or `/factory watch` for every job
+   at once, whenever reviewers have had a chance to respond). One pass, then stop. The factory never merges the PR and never
    approves it.
    1. **State** (also the whole of the Step 0b sweep). `gh pr view <n> --json state,mergedAt,reviewDecision,mergeable,statusCheckRollup,headRefOid`.
       - `MERGED` → remove the worktree and branch (commands in the `local` block above, local branch only), stage
@@ -265,6 +266,15 @@ in step 5. `<wt>` and `<branch>` below are the `worktree` and `branch` fields of
       not `CONFLICTING`. Pass → stage `ready`, `note` = `all clear, merge the PR`; tell the user the URL. Otherwise stage
       `pr-open`, `note` = the first unmet condition (e.g. `waiting on approval`, `checks pending`, `merge conflict`).
       A conflict or a check still running is reported, not fixed here: for a conflict stage `needs-human`.
+
+9. **Watch** (`/factory watch`). One pass over every open PR, so a single `/loop /factory watch` replaces one loop per
+   job. The Step 0b sweep has already closed merged and closed PRs. Then, for each `.factory/jobs/*/job.json` with `pr`
+   set and stage `pr-open` or `ready`, oldest id first, run step 8 for it. One job at a time, never in parallel: each
+   may resume a builder and push. Skip every other stage (a `build` job is mid-round, maybe in another session). A job
+   whose step 8 ends in `needs-human` does not stop the pass; carry on with the next. Report one line per job, e.g.
+   `003-rate-limiting: 2 comments answered` or `004-filler-config: waiting on approval`, then any new lesson candidates.
+   No job with an open PR: say `nothing to watch`, so the user can end the loop. Unattended runs never tick lessons,
+   never merge, never approve.
 
 ## job.json schema
 
