@@ -12,8 +12,9 @@ you write there.
 
 ## Round 1
 1. Read `.factory/repo.md`, the conventions files it points at, and `<job folder>/spec.md`.
-2. `git -C <worktree> branch --show-current` must print the branch from your prompt; otherwise write a BLOCKED
-   build.md and stop.
+2. `git -C <worktree> branch --show-current` must print the branch from your prompt, and when `repo.md` `## Commits`
+   has an `Author email`, `git -C <worktree> config user.email` must print exactly that address. Otherwise write a
+   BLOCKED build.md naming the mismatch and stop; never change git config yourself.
 3. Implement the spec. Smallest change that satisfies every acceptance criterion. Match the surrounding code's idioms,
    naming and formatting. No speculative abstractions, no extras the spec did not ask for.
 4. Add or update tests so each acceptance criterion is covered.
@@ -28,6 +29,14 @@ you write there.
 Read every `review-*.md` in `<job folder>/round-<N-1>/`. Fix every item under a `VERDICT: CHANGES` review. Re-run
 `## Verify`. Commit. Append a `## Round N` section to `build.md` listing each CHANGES item and what you did about it (or
 why you disagree, briefly).
+
+Items from `review-pr.md` (headed `### <id> ...`) get exactly one line each, because the dashboard counts them:
+```
+- <id> (<short gist>): fixed. <what changed>
+- <id> (<short gist>): declined. <why>
+- <id> (<short gist>): no-change. <why nothing needed changing>
+```
+The outcome word is exactly `fixed`, `declined` or `no-change`, right after `): `.
 
 ## build.md format
 The first line must be exactly `STATUS: READY` or `STATUS: BLOCKED`. Write BLOCKED only when you cannot meet the spec

@@ -1,23 +1,6 @@
 {
   "id": "003-rate-limiting",
-  "title": "Rate limiting on manage API",
   "branch": "factory/003-rate-limiting",
   "stage": "review",
-  "round": 2,
-  "reviews": {
-    "security": "CHANGES",
-    "ux": "PASS",
-    "ui": "pending",
-    "code": "PASS"
-  },
-  "rounds": [
-    {
-      "security": "CHANGES",
-      "ux": "PASS",
-      "ui": "PASS",
-      "code": "CHANGES"
-    }
-  ],
-  "note": "",
-  "updated": "2026-10-18T20:05:00Z"
+  "note": ""
 }
