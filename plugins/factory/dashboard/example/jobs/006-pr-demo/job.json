@@ -5,7 +5,7 @@
   "stage": "ready",
   "round": 3,
   "reviews": { "security": "PASS", "ux": "PASS", "ui": "PASS", "code": "PASS" },
-  "rounds": [],
+  "rounds": [{ "security": "PASS", "ux": "PASS", "ui": "PASS", "code": "PASS" }],
   "pr": { "number": 42, "url": "https://github.com/org/repo/pull/42", "seen": [] },
   "note": "all clear, merge the PR",
   "updated": "2026-10-18T20:15:00Z"
