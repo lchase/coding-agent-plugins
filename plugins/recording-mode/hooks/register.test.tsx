@@ -78,6 +78,9 @@ test('band stacks on other lines, only while on', async ($: any, on: any) => {
     const ui = await $.ui.mount({ ...bandProps, surface })
     expect(await ui.find({ type: 'Text', text: /recording/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /another mod line/ })).toBeDefined()
+    // the terminal pads its label into a column; the desktop spaces with gap instead
+    expect(await ui.find({ type: 'Text', text: surface === 'terminal' ? /^ +rec$/ : /^rec$/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /│/ })).toEqual(surface === 'terminal' ? expect.anything() : undefined)
     await ui.unmount()
   }
   await $.command.run({ command: 'rec', args: 'off' })

@@ -63,8 +63,16 @@ test('band shows label, meter and threshold on terminal and desktop', async ($, 
     const ui = await $.ui.mount({ ...BAND, surface })
     await $.session.measure(usage(62))
     await ui.redraw()
-    expect(await ui.find({ type: 'Text', text: /handoff │/ })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: /^▰▰▰▰$/ })).toBeDefined()
+    if (surface === 'terminal') {
+      expect(await ui.find({ type: 'Text', text: /handoff │/ })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: /^▰▰▰▰$/ })).toBeDefined()
+    } else {
+      // gapped row with an Svg meter and a native button, no box-drawing glyphs
+      expect(await ui.find({ type: 'Text', text: /^handoff$/ })).toBeDefined()
+      expect(await ui.find({ type: 'Svg' })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: /[│▰▱]/ })).toBeUndefined()
+      expect((await ui.find({ key: 'save' }))?.props).not.toMatchObject({ plain: true })
+    }
     expect(await ui.find({ type: 'Text', text: /62%/ })).toBeDefined()
     expect(await ui.find({ key: 'save' })).toBeDefined()
     // Stacked on top of the other mod's line, not replacing it.

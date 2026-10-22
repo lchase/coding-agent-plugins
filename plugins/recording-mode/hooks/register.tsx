@@ -167,14 +167,22 @@ export const register: Register = on => {
     if (e.props.hasSurvey || !cfg.isOn) return next(e)
 
     const { Box, Text } = $.ui.resolve(e)
+    const note = cfg.isStrict ? 'secrets, amounts and home paths masked' : 'secrets masked on screen'
     // label column is 7 wide, the length of 'handoff', so stacked bands line up
-    const chip = (
+    const chip = e.surface !== 'terminal' ? (
+      // proportional fonts collapse the padding and box-drawing glyphs, so space the parts with gap
+      <Box flexDirection="row" alignItems="center" gap={1}>
+        <Text dimColor>rec</Text>
+        <Text bold color="#f87171">● {cfg.isStrict ? 'strict' : 'recording'}</Text>
+        <Text dimColor>{note}</Text>
+      </Box>
+    ) : (
       <Box>
         <Text dimColor>{'rec'.padStart(7)}</Text>
         <Text dimColor>{' │ '}</Text>
         <Text bold color="#f87171">● </Text>
         <Text bold>{cfg.isStrict ? 'strict' : 'recording'}</Text>
-        <Text dimColor>{cfg.isStrict ? ' · secrets, amounts and home paths masked' : ' · secrets masked on screen'}</Text>
+        <Text dimColor> · {note}</Text>
       </Box>
     )
     const below = await next(e)
