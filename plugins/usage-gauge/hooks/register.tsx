@@ -208,8 +208,8 @@ export const register: Register = on => {
         </Box>
       )
       const row = (
-        <Box flexDirection="row" alignItems="center" flexWrap="wrap" columnGap={3}>
-          <Text dimColor bold>{hasPlan ? 'plan' : 'api'}</Text>
+        <Box flexDirection="row" alignItems="center" flexWrap="wrap" columnGap={2}>
+          <Box width={8}><Text dimColor bold>{hasPlan ? 'plan' : 'api'}</Text></Box>
           {s.rateLimits.map(l => {
             const at = resetText(l, now)
             const out = l.kind === 'five_hour' ? paceOutMs(all?.[l.kind], l.resetsAt, now) : undefined

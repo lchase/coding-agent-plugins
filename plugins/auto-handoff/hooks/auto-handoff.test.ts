@@ -91,3 +91,17 @@ test('ask mode: crossing the threshold keeps the meter and arms the save', async
   expect(await ui.find({ type: 'Text', text: /85%/ })).toBeDefined()
   await ui.unmount()
 })
+
+test('a fresh session shows its context percent before any session.measure', async ($, on) => {
+  engine(on)
+  on('session.usage', () => ({ value: { context: { window: 200000, percent: 34 }, rateLimits: [] } }) as never)
+  on('session.start', (_$, e) => ({ cwd: e.cwd }) as never)
+  on('command.register', () => ({ value: undefined }) as never)
+  on('session.model', () => ({ value: 'claude-opus-5-5' }) as never)
+  on('fs.stat', () => ({ deny: 'ENOENT' }) as never)
+  on('fs.read', () => ({ deny: 'ENOENT' }) as never)
+  await $.session.start({ surface: 'desktop', isInteractive: true, cwd: '/work' } as never)
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  expect(await ui.find({ type: 'Text', text: /^34%$/ })).toBeDefined()
+  await ui.unmount()
+})

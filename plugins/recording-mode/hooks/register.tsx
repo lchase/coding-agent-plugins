@@ -172,7 +172,7 @@ export const register: Register = on => {
     const chip = e.surface !== 'terminal' ? (
       // proportional fonts collapse the padding and box-drawing glyphs, so space the parts with gap
       <Box flexDirection="row" alignItems="center" gap={1}>
-        <Text dimColor>rec</Text>
+        <Box width={8}><Text dimColor bold>rec</Text></Box>
         <Text bold color="#f87171">● {cfg.isStrict ? 'strict' : 'recording'}</Text>
         <Text dimColor>{note}</Text>
       </Box>
