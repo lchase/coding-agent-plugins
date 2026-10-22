@@ -55,11 +55,13 @@ and a dashboard shows jobs moving across the stages.
 
 ```
 /plugin marketplace add lchase/skills      # once
+/plugin install smart-review@lchase
 /plugin install factory@lchase
 ```
 
-Claude Code only. The dashboard needs [Bun](https://bun.sh). The builder needs whatever
-your repo needs to run its tests.
+Claude Code only. factory declares `smart-review` (same marketplace) as a dependency: the code reviewer runs a
+smart-review `min` pass over every diff. The dashboard needs [Bun](https://bun.sh). The
+builder needs whatever your repo needs to run its tests.
 
 ## First run in a repo: `/factory setup`
 
@@ -100,7 +102,7 @@ personal queue) are gitignored by setup. A repo set up before this: add `.factor
 | Input | Example | What happens |
 |---|---|---|
 | Text | `/factory Add a health endpoint returning ok or degraded` | written verbatim as the feature |
-| Bug report as text | `/factory Bug: TTS retries forever when the voice id is invalid` | spec gets a reproduction test as AC1, fix as AC2 |
+| Bug report as text | `/factory Bug: TTS retries forever when the voice id is invalid` | spec gets a reproduction test as AC1, fix as AC2, scoped to the bug's failure class |
 | Path to a `.md` | `/factory docs/specs/rate-limiting.md` | file copied in; title from its first heading |
 | Issue key or URL | `/factory PROJ-1234` | fetched from the tracker in `repo.md`; key becomes the commit prefix |
 | GitHub issue | `/factory #123` | `gh issue view`, title + body + comments |
@@ -115,6 +117,12 @@ transition, for example:
 003-rate-limiting: round 2, all PASS, approver running
 003-rate-limiting: ESCALATE, touches application.properties. Worktree: .worktrees/003-rate-limiting
 ```
+
+**Scope.** For a bug, the spec-writer sweeps the whole failure class (every input at the same entry point that ends in
+the same bad outcome) and fixes it all, unless your input sets the scope. Whatever it leaves out goes under
+`## Deferred` in `spec.md`; reviewers tag same-class problems outside the scope `[follow-up]` (non-blocking). Both end
+up in a "Known and deferred" section of the PR body, so a human reviewer can tell deliberate from missed. The UI
+reviewer is skipped (its file says so) when no file under `repo.md` `## UI paths` changed.
 
 Each job is a folder:
 

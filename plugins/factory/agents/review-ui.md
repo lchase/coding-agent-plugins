@@ -28,9 +28,12 @@ VERDICT: CHANGES
 ## Findings
 - [must] path:line: problem. Fix: ...
 - [nit] ...
+- [follow-up] path:line: same failure class as the job, outside the spec's scope (or listed in its `## Deferred`)
 
 ## Checked
 One line on what you looked at.
 ```
 
-A `[must]` finding forces `CHANGES`; nits alone are a `PASS`. Do not edit code or any other file.
+A `[must]` finding forces `CHANGES`; nits and follow-ups alone are a `PASS`. Use `[follow-up]` for a real problem
+the spec scoped out, rather than staying silent or blocking on it; the PR body lists them. Do not edit code or any
+other file.
