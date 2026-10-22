@@ -38,6 +38,11 @@
   .brand { display: flex; align-items: center; gap: 12px; }
   .logo { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); display: inline-flex; align-items: center; justify-content: center; }
   .ver { font-size: 12px; line-height: 16px; color: var(--faint); align-self: flex-end; margin: 0 0 4px -4px; }
+  .repos { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 24px 0; }
+  .repo-f { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 4px; background: none; color: var(--muted); font: 12px/16px var(--mono); cursor: pointer; transition: background .2s, color .2s, border-color .2s; }
+  .repo-f:hover { background: var(--card-hover); color: var(--ink); }
+  .repo-f[aria-pressed="true"] { border-color: transparent; background: color-mix(in srgb, var(--merged) 22%, transparent); color: var(--ink); }
+  .repo-f .n { color: var(--faint); }
   h1 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 500; }
   .status { font-family: var(--mono); font-size: 12px; line-height: 16px; color: var(--muted); }
   .status::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--live); margin-right: 8px; vertical-align: 0; animation: pulse 1.6s ease-in-out infinite; }
@@ -82,7 +87,13 @@
   @media (prefers-reduced-motion: reduce) { .pulse, .chip.wait, .status::before { animation: none; } }
 
   .board { flex: 1; }
-  footer { margin-top: auto; padding: 12px 24px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 12px; line-height: 16px; color: var(--faint); display: flex; gap: 24px; flex-wrap: wrap; }
+  body { padding-bottom: 80px; }
+  .toolbar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; gap: 4px; padding: 6px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: var(--shadow); }
+  .tool { position: relative; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: none; color: var(--muted); cursor: pointer; transition: background .2s, color .2s; }
+  .tool:hover, .tool:focus-visible { background: var(--card-hover); color: var(--ink); }
+  .tool svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .tool::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%); padding: 4px 8px; border-radius: 4px; background: var(--ink); color: var(--bg); font: 12px/16px var(--mono); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .15s; }
+  .tool:hover::after, .tool:focus-visible::after { opacity: 1; }
 
   /* Drawer */
   .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .2s; }
@@ -126,7 +137,7 @@
 
   @media (max-width: 1100px) { .board { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 24px; } }
   @media (max-width: 640px) {
-    header, footer { padding-left: 16px; padding-right: 16px; }
+    header, .repos { padding-left: 16px; padding-right: 16px; }
     .board { grid-template-columns: 1fr; padding: 16px; }
     .d-body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
     .files { border-right: 0; border-bottom: 1px solid var(--line-strong); display: flex; gap: 4px; overflow-x: auto; padding: 8px; }
@@ -137,11 +148,15 @@
 </head>
 <body>
 <header><div class="brand"><span class="logo" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V6l5-3 5 3v6l-5 3-5-3z"/><path d="M3 6l5 3 5-3M8 9v6"/></svg></span><h1>Factory</h1><span class="ver" id="ver"></span></div><div class="status" id="status">connecting…</div></header>
+<nav class="repos" id="repos" aria-label="Filter by repo"></nav>
 <main class="board" id="board"></main>
-<footer>
-  <span>/factory &lt;feature&gt;</span><span>/factory next</span>
-  <span>/factory approve &lt;job-id&gt;</span><span>/factory rework &lt;job-id&gt; &lt;note&gt;</span><span>/factory pr-sync &lt;job-id&gt;</span>
-</footer>
+<nav class="toolbar" aria-label="Factory commands">
+  <button class="tool" data-copy="/factory &lt;feature&gt;" data-tip="/factory &lt;feature&gt;" aria-label="/factory &lt;feature&gt;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button class="tool" data-copy="/factory next" data-tip="/factory next" aria-label="/factory next"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l9 7-9 7zM19 5v14"/></svg></button>
+  <button class="tool" data-copy="/factory approve &lt;job-id&gt;" data-tip="/factory approve &lt;job-id&gt;" aria-label="/factory approve &lt;job-id&gt;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+  <button class="tool" data-copy="/factory rework &lt;job-id&gt; &lt;note&gt;" data-tip="/factory rework &lt;job-id&gt; &lt;note&gt;" aria-label="/factory rework &lt;job-id&gt; &lt;note&gt;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg></button>
+  <button class="tool" data-copy="/factory pr-sync &lt;job-id&gt;" data-tip="/factory pr-sync &lt;job-id&gt;" aria-label="/factory pr-sync &lt;job-id&gt;"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V10a3 3 0 0 0-3-3h-3m2.5-2.5L12 7l2.5 2.5"/></svg></button>
+</nav>
 
 <div class="scrim" data-close></div>
 <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="d-title">
@@ -164,6 +179,8 @@ const REVIEWERS = [["security", "sec"], ["ux", "ux"], ["ui", "ui"], ["code", "co
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+let repo = null; try { repo = localStorage.getItem("factory.repo"); } catch {}
+let repos = [], lastRepos = "";
 let jobs = [], lastBoard = "", openId = null, openPath = null, openText = null;
 
 // ---- board ----
@@ -196,9 +213,17 @@ function card(j) {
     <p class="title">${esc(j.title || j.id)}</p><div class="branch">${esc(j.branch || "")}</div>${pr}
     ${rows.length ? `<div class="rounds">${rows.join("")}</div>` : ""}${note}</div>`;
 }
+function renderRepos() {
+  if (repo && !repos.includes(repo)) repo = null;
+  const count = r => jobs.filter(j => !r || j.repo === r).length;
+  const html = [null, ...repos].map(r => `<button class="repo-f" aria-pressed="${r === repo}" data-repo="${esc(r ?? "")}">${esc(r ?? "all")}<span class="n">${count(r)}</span></button>`).join("");
+  if (html !== lastRepos) { lastRepos = html; $("repos").innerHTML = html; }
+}
 function render() {
+  renderRepos();
+  const shown = jobs.filter(j => !repo || j.repo === repo);
   const html = STAGES.map(([k, label, who, cls]) => {
-    const inCol = jobs.filter(j => j.stage === k);
+    const inCol = shown.filter(j => j.stage === k);
     const cards = inCol.slice().reverse().map(card).join("");
     return `<section class="col ${cls || ""}"><div class="col-head"><h2>${label}</h2><span class="who">${who}</span><span class="count">${inCol.length || ""}</span></div>${cards || '<div class="empty">none</div>'}</section>`;
   }).join("");
@@ -209,7 +234,7 @@ async function poll() {
   try {
     const r = await fetch("board.json", { cache: "no-store" });
     if (!r.ok) throw new Error(`board.json: HTTP ${r.status}`);
-    const data = await r.json(); jobs = data.jobs || [];
+    const data = await r.json(); jobs = data.jobs || []; repos = data.repos || [...new Set(jobs.map(j => j.repo))];
     if (data.version) document.getElementById("ver").textContent = `v${data.version}`;
     render();
     if (openId) await refreshDrawer();
@@ -262,7 +287,14 @@ function openDrawer(id) { openId = id; openPath = null; openText = undefined; do
 function closeDrawer() { openId = null; document.body.classList.remove("open"); }
 document.addEventListener("click", e => {
   const cp = e.target.closest("[data-copy]");
-  if (cp) { navigator.clipboard?.writeText(cp.dataset.copy); cp.textContent = "copied"; setTimeout(() => { cp.textContent = "copy"; }, 1200); return; }
+  if (cp) {
+    navigator.clipboard?.writeText(cp.dataset.copy);
+    const tool = cp.classList.contains("tool"), was = tool ? cp.dataset.tip : "copy";
+    const set = t => tool ? (cp.dataset.tip = t) : (cp.textContent = t);
+    set("copied"); setTimeout(() => set(was), 1200); return;
+  }
+  const rf = e.target.closest("[data-repo]");
+  if (rf) { repo = rf.dataset.repo || null; try { repo ? localStorage.setItem("factory.repo", repo) : localStorage.removeItem("factory.repo"); } catch {} return render(); }
   const c = e.target.closest("[data-job]"); if (c) return openDrawer(c.dataset.job);
   const f = e.target.closest("[data-file]"); if (f) { openPath = f.dataset.file; openText = undefined; $("d-doc").parentElement.scrollTop = 0; return refreshDrawer(); }
   if (e.target.closest("[data-close]")) closeDrawer();
