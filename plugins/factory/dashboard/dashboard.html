@@ -173,12 +173,18 @@ function chips(n, v, waiting) {
     return `<span class="chip ${cls}" title="${k}: ${esc(v[k] || "pending")}">${s}</span>`;
   }).join("") + `</div>`;
 }
+function prRow(n, verdict) {
+  const cls = verdict === "PASS" || verdict === "CHANGES" ? verdict : "";
+  return `<div class="round"><span class="r">R${n}</span><span class="chip ${cls}" style="grid-column: 2 / -1" title="PR review: ${esc(verdict || "pending")}">PR review</span></div>`;
+}
 const cmd = c => `<span class="cmd"><code>${esc(c)}</code><span class="copy" role="button" tabindex="0" data-copy="${esc(c)}" title="Copy" aria-label="Copy command">copy</span></span>`;
 function card(j) {
   const live = LIVE.has(j.stage), human = j.stage === "needs-human" || j.stage === "ready";
-  const rows = (j.rounds || []).map((v, i) => chips(i + 1, v, false));
+  // round folders on disk win; job.json rounds/reviews is only the fallback (e.g. the bundled example has no folders)
+  const rows = j.history?.length ? j.history.map(({ n, v }) => v.pr !== undefined ? prRow(n, v.pr) : chips(n, v, j.stage === "review" && n === j.round))
+    : (j.rounds || []).map((v, i) => chips(i + 1, v, false));
   const cur = j.reviews && REVIEWERS.some(([k]) => j.reviews[k] === "PASS" || j.reviews[k] === "CHANGES");
-  if (j.round > rows.length && j.reviews && (cur || j.stage === "review")) rows.push(chips(j.round, j.reviews, j.stage === "review"));
+  if (!j.history?.length && j.round > rows.length && j.reviews && (cur || j.stage === "review")) rows.push(chips(j.round, j.reviews, j.stage === "review"));
   const pr = j.pr ? `<div class="branch">PR #${esc(j.pr.number)}</div>` : "";
   const note = j.stage === "ready" ? `<div class="note">${esc(j.note || "all clear")}<br>${j.pr ? esc(j.pr.url) : ""}</div>`
              : j.stage === "pr-open" ? `<div class="note">${j.note ? esc(j.note) + "<br>" : ""}${cmd(`/factory pr-sync ${j.id}`)}</div>`
