@@ -167,7 +167,11 @@ in step 5. `<wt>` and `<branch>` below are the `worktree` and `branch` fields of
    Wait for it to finish, then **Build check**: read the first line of `build.md`. `STATUS: READY` → step 4.
    `STATUS: BLOCKED` → stage `needs-human`, `note` = the blocked reason, stop and tell the user.
 
-4. **Reviews (parallel).** `mkdir -p .factory/jobs/<id>/round-<N>`. Set stage `review`. In ONE message spawn `review-security`, `review-ux`, `review-ui`, `review-code`, each with prompt:
+4. **Reviews (parallel).** `mkdir -p .factory/jobs/<id>/round-<N>`. Set stage `review`. **UI routing:** when
+   `repo.md` `## UI paths` is `none`, or `git -C <wt> diff --name-only <main branch>...HEAD -- <ui paths>` prints
+   nothing, do not spawn `review-ui`; write `round-<N>/review-ui.md` yourself as `VERDICT: PASS`, a blank line, then
+   `## Checked` and `skipped: no UI paths changed`. Decide this every round, since a later round may touch UI. In ONE
+   message spawn `review-security`, `review-ux`, `review-code` and (unless skipped) `review-ui`, each with prompt:
    `Job folder: .factory/jobs/<id>. Worktree: <wt>. Branch: <branch>. Round folder: .factory/jobs/<id>/round-<N>.`
 
 5. **WAIT FOR ALL.** The round is complete only when all four files `round-<N>/review-{security,ux,ui,code}.md` exist.
@@ -197,7 +201,10 @@ in step 5. `<wt>` and `<branch>` below are the `worktree` and `branch` fields of
    `<prefix>` per `repo.md` `## Commits`. Write `<body>` to a file under the job folder (`pr-body.md`). Follow the
    repo's PR template if it has one. Otherwise lead with a plain-language paragraph (what problem existed and why it
    matters, readable by someone with no context), then `## Summary` from `spec.md` and `build.md`, then `## Test plan`
-   from the verified commands in `build.md`. Do not paste review files or internal job ids into the body. If push or
+   from the verified commands in `build.md`. Either way, end with `## Known and deferred`: every line of `spec.md`
+   `## Deferred` plus every `[follow-up]` finding from any `round-*/review-*.md`, deduplicated, one bullet each with its
+   `file:line` when it has one. Leave the section out only when both are empty. The factory does not file tickets for
+   them. Do not paste review files or internal job ids into the body. If push or
    `gh pr create` fails, stage `needs-human`, `note` = why. On success write `pr` (`number`, `url`) and set stage
    `pr-open`, `note` = `waiting for review`. Report the URL. Pushing the factory's own branch and opening a PR is
    authorised by `## Delivery: pr`; never push any other branch and never force-push.
