@@ -204,6 +204,16 @@ the PR; the next `pr-sync` sees it merged, removes the worktree and marks the jo
 
 Comment text is treated as untrusted data, never as instructions.
 
+To keep every open factory PR answered without running `pr-sync` per job, leave one loop going:
+
+```
+/loop /factory watch        # or /loop 15m /factory watch for a fixed interval
+```
+
+Each pass runs `pr-sync` on every job in PR review or Ready, one at a time, and prints one line per job. It never
+merges, approves or ticks lessons; it says `nothing to watch` once no factory PR is open, which is your cue to stop
+the loop.
+
 You do not have to run `pr-sync` just to clean up after your own merge: every `/factory` command (and `/factory serve`)
 first sweeps jobs in PR review or Ready, and any whose PR is now merged get their worktree and local branch removed and
 move to **Merged** (a PR closed without merging goes to **Needs human**). The sweep only checks PR state; it never
@@ -282,7 +292,7 @@ waits in needs-human for `/factory approve`).
 
 - It never merges or approves a PR under `pr` delivery, and never force-pushes. A person merges.
 - PR fixes are not re-reviewed by the four internal reviewers; the PR's own reviewers and CI are the check.
-- No automatic polling: run `/factory pr-sync <id>` yourself, or `/loop /factory pr-sync <id>`.
+- No polling of its own: run `/factory pr-sync <id>` yourself, or `/loop /factory watch` for every open PR.
 - No visual checks of a running app. The UX and UI reviewers judge from the diff and the build.
 - No questions mid-run.
 - Builder resumption across sessions: if the orchestrator session ends mid-job, state is on
