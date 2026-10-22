@@ -7,6 +7,7 @@ import {
   bar,
   colorFor,
   duration,
+  meterSvg,
   money,
   paceOutMs,
   paceText,
@@ -196,6 +197,52 @@ export const register: Register = on => {
     const hasCtx = s.contextPercent !== undefined
     if (!hasPlan && !hasCtx && s.costUsd === undefined) return next(e)
 
+    if (e.surface !== 'terminal') {
+      // proportional fonts collapse the padded label, │ and ▰▱ cells: a gapped row with Svg meters
+      const { Box, Text, Svg } = $.ui.resolve(e)
+      const Gauge = (label: string, pct: number) => (
+        <Box flexDirection="row" alignItems="center" gap={1}>
+          <Text dimColor>{label}</Text>
+          <Svg source={meterSvg(pct, colorFor(pct))} alt={`${label} ${pctText(pct)}`} width={56} height={8} />
+          <Text bold color={colorFor(pct)}>{pctText(pct)}</Text>
+        </Box>
+      )
+      const row = (
+        <Box flexDirection="row" alignItems="center" flexWrap="wrap" columnGap={3}>
+          <Text dimColor bold>{hasPlan ? 'plan' : 'api'}</Text>
+          {s.rateLimits.map(l => {
+            const at = resetText(l, now)
+            const out = l.kind === 'five_hour' ? paceOutMs(all?.[l.kind], l.resetsAt, now) : undefined
+            return (
+              <Box flexDirection="row" alignItems="center" gap={1}>
+                {Gauge(windowLabel(l.kind), l.percentUsed)}
+                {at ? <Text dimColor>resets {at}</Text> : null}
+                {out !== undefined ? <Text color="#fbbf24">⚠ out in {paceText(out)} at this pace</Text> : null}
+              </Box>
+            )
+          })}
+          {!hasPlan && hasCtx ? Gauge('ctx', s.contextPercent as number) : null}
+          {s.costUsd !== undefined ? (
+            <Text>
+              <Text dimColor>session </Text>
+              {money(s.costUsd)}
+              {last !== undefined ? <Text dimColor> (+{money(last)})</Text> : null}
+            </Text>
+          ) : null}
+        </Box>
+      )
+      const under = await next(e)
+
+      return under ? (
+        <Box flexDirection="column">
+          {row}
+          {under}
+        </Box>
+      ) : (
+        row
+      )
+    }
+
     const { Box, Text } = $.ui.resolve(e)
     const sep = <Text dimColor> │ </Text>
     // filled cells in the level color, empty cells dim
@@ -257,6 +304,22 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text } = $.ui.resolve(e)
+    const Meter = (pct: number, cells: number, alt: string) => {
+      if (e.surface === 'terminal') {
+        return (
+          <Text>
+            <Text color={colorFor(pct)}>{bar(pct, cells)}</Text> {pctText(pct)}
+          </Text>
+        )
+      }
+      const { Svg } = $.ui.resolve(e)
+      return (
+        <Box flexDirection="row" alignItems="center" gap={1}>
+          <Svg source={meterSvg(pct, colorFor(pct), 240)} alt={alt} width={240} height={8} />
+          <Text bold color={colorFor(pct)}>{pctText(pct)}</Text>
+        </Box>
+      )
+    }
     const s = await read($, snap)
     const cfg: Settings = ((await read($, settings)) as Settings | undefined) ?? DEFAULTS
     const all = await read($, readings)
@@ -276,9 +339,7 @@ export const register: Register = on => {
           return (
             <Box flexDirection="column" marginTop={1}>
               <Text bold>{windowTitle(l.kind)}</Text>
-              <Text>
-                <Text color={colorFor(l.percentUsed)}>{bar(l.percentUsed, width)}</Text> {pctText(l.percentUsed)}
-              </Text>
+              {Meter(l.percentUsed, width, `${windowTitle(l.kind)} ${pctText(l.percentUsed)}`)}
               <Text dimColor>
                 {at ? `resets ${at}${l.resetsAt && Date.parse(l.resetsAt) > now ? ` (in ${duration(Date.parse(l.resetsAt) - now)})` : ''}` : 'no reset time reported'}
               </Text>

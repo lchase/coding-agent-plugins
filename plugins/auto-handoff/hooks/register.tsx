@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, Register, RenderElement } from 'claude-code'
 
 import type { Band } from '../types'
 
@@ -305,6 +305,72 @@ export const register: Register = on => {
 
     const { Box, Text, Button } = $.ui.resolve(e)
     const now = await $.clock.now()
+    const branch = await readBranch($)
+    const isDefault = branch === 'main' || branch === 'master'
+    const shown = branch.length > BRANCH_MAX ? `${branch.slice(0, BRANCH_MAX - 1)}…` : branch
+    const stack = (line: RenderElement) =>
+      below ? (
+        <Box flexDirection="column">
+          {below}
+          {line}
+        </Box>
+      ) : (
+        line
+      )
+
+    if (e.surface !== 'terminal') {
+      // proportional fonts collapse the padded chip, │ and ▰▱ cells: a gapped row, an Svg meter, native buttons
+      const { Svg } = $.ui.resolve(e)
+      const resume = () => {
+        later($, () => runResume($))
+        return update($, band, cur => ({ ...cur, from: null }))
+      }
+      let parts
+      if (b.phase === 'saved' && b.savedAt !== null) {
+        parts = [
+          <Text color={GREEN}>✓ saved {hhmm(b.savedAt)}</Text>,
+          <Button key="clear" hotkey="c" label="Clear & continue" onPress={() => clearAndContinue($)} />,
+        ]
+      } else if (b.phase === 'idle' && b.from !== null && b.percent !== null && b.percent < s.threshold && b.from.at > 0) {
+        parts = [
+          <Text>from {ago(now - b.from.at)}: {b.from.objective === '' ? 'handoff' : b.from.objective}</Text>,
+          <Button key="resume" hotkey="r" label="Resume" onPress={resume} />,
+        ]
+      } else {
+        const percent = b.percent ?? 0
+        const isHot = b.phase === 'ask' || b.phase === 'saving' || percent >= s.threshold
+        const color = isHot ? RED : percent >= 60 ? AMBER : GREEN
+        const fill = Math.round((clamp(percent, 0, 100) / 100) * 56)
+        const mark = Math.round((s.threshold / 100) * 56)
+        parts = [
+          b.model !== null ? <Text dimColor>{modelLabel(b.model)}{b.effort !== null ? ` ${plain(b.effort)}` : ''}</Text> : null,
+          <Text dimColor>ctx</Text>,
+          <Svg
+            source={`<svg xmlns="http://www.w3.org/2000/svg" width="56" height="8" viewBox="0 0 56 8"><rect width="56" height="8" rx="4" fill="#8080804d"/><rect width="${fill}" height="8" rx="4" fill="${color}"/><rect x="${mark - 1}" width="2" height="8" fill="${AMBER}"/></svg>`}
+            alt={`context ${Math.round(percent)}%, saves at ${s.threshold}%`}
+            width={56}
+            height={8}
+          />,
+          <Text color={color}>{Math.round(percent)}%</Text>,
+          b.phase === 'saving' ? (
+            <Text dimColor>saving handoff…</Text>
+          ) : (
+            <Text dimColor>
+              {s.mode === 'auto' ? 'auto-saves' : 'saves'} at <Text bold color={AMBER}>{s.threshold}%</Text>
+            </Text>
+          ),
+          b.phase === 'saving' ? null : <Button key="save" hotkey="h" label="Save now" onPress={() => startSave($, 'manual')} />,
+        ]
+      }
+
+      return stack(
+        <Box flexDirection="row" alignItems="center" flexWrap="wrap" gap={1}>
+          <Text dimColor bold>handoff</Text>
+          {parts}
+          {branch !== '' && <Text color={isDefault ? undefined : BRANCH_COLOR} dimColor={isDefault}>⎇ {shown}</Text>}
+        </Box>,
+      )
+    }
 
     const chip = (
       <Text dimColor>{'handoff │ '}</Text>
@@ -361,26 +427,13 @@ export const register: Register = on => {
       )
     }
 
-    const branch = await readBranch($)
-    const isDefault = branch === 'main' || branch === 'master'
-    const shown = branch.length > BRANCH_MAX ? `${branch.slice(0, BRANCH_MAX - 1)}…` : branch
-
-    const line = (
+    return stack(
       <Box>
         {chip}
         <Text> </Text>
         {body}
         {branch !== '' && (isDefault ? <Text dimColor>{` ⎇ ${shown}`}</Text> : <Text color={BRANCH_COLOR}>{` ⎇ ${shown}`}</Text>)}
-      </Box>
-    )
-
-    return below ? (
-      <Box flexDirection="column">
-        {below}
-        {line}
-      </Box>
-    ) : (
-      line
+      </Box>,
     )
   })
 }

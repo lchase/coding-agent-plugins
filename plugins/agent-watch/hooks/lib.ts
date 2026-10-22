@@ -118,7 +118,7 @@ function agentSegs(a: AgentRow, withTask: boolean): Seg[] {
   return out
 }
 
-const SEP: Seg = { t: ' │ ', dim: true }
+export const SEP: Seg = { t: ' │ ', dim: true }
 const DOT: Seg = { t: ' · ', dim: true }
 
 /**

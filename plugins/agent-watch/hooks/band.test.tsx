@@ -50,7 +50,9 @@ test('band shows label, agents and one skill on terminal and desktop, stacked on
   await play($)
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...bandProps(200), surface })
-    expect(await ui.find({ type: 'Text', text: /^ +agents$/ })).toBeDefined()
+    // the terminal pads its label into a column and divides with │; the desktop spaces with gap
+    expect(await ui.find({ type: 'Text', text: surface === 'terminal' ? /^ +agents$/ : /^agents$/ })).toBeDefined()
+    if (surface === 'desktop') expect(await ui.find({ type: 'Text', text: /│/ })).toBeUndefined()
     expect(await ui.find({ type: 'Text', text: /fact-checker/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /"check the prices"/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /^watch$/ })).toBeDefined()
@@ -85,6 +87,9 @@ test('pane nests agents and lists totals and timeline', async ($: any, on: any) 
     expect(await ui.find({ type: 'Text', text: /find the hooks/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /Totals per model/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /Timeline/ })).toBeDefined()
+    // terminal timeline is █ cells, the desktop's Svg spans
+    if (surface === 'terminal') expect(await ui.find({ type: 'Text', text: /█/ })).toBeDefined()
+    else expect(await ui.find({ type: 'Svg' })).toBeDefined()
     await ui.unmount()
   }
 })

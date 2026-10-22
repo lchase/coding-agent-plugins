@@ -20,6 +20,12 @@ export function bar(pct: number, cells: number): string {
   return '▰'.repeat(filled) + '▱'.repeat(cells - filled)
 }
 
+/** A rounded meter for the surfaces that draw Svg; the terminal keeps the `bar` cells. */
+export function meterSvg(pct: number, color: string, width = 56): string {
+  const fill = Math.round((Math.max(0, Math.min(100, pct)) / 100) * width)
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="8" viewBox="0 0 ${width} 8"><rect width="${width}" height="8" rx="4" fill="#8080804d"/><rect width="${fill}" height="8" rx="4" fill="${color}"/></svg>`
+}
+
 export function windowLabel(kind: string): string {
   if (kind === 'five_hour') return '5h'
   if (kind === 'seven_day') return 'week'

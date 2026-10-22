@@ -38,6 +38,12 @@ test('band shows plan windows, unknown kinds and session cost on every surface',
     expect(await ui.find({ type: 'Text', text: /34%/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /spend_limit/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /\$4\.12/ })).toBeDefined()
+    // terminal draws ▰▱ cells; the desktop draws Svg meters
+    if (surface === 'terminal') expect(await ui.find({ type: 'Text', text: /▰/ })).toBeDefined()
+    else {
+      expect(await ui.find({ type: 'Svg' })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: /[▰▱│]/ })).toBeUndefined()
+    }
     await ui.unmount()
   }
 })

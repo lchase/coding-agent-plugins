@@ -46,9 +46,33 @@ async function lineText(ui: any) {
   return texts.map((t: any) => t.text).join('')
 }
 
-async function mount($: any) {
-  return $.ui.mount({ plugin: 'cache-clock', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+async function mount($: any, surface: 'terminal' | 'desktop' = 'terminal') {
+  return $.ui.mount({ plugin: 'cache-clock', surface, component: 'AbovePrompt', props: PROPS })
 }
+
+test('desktop draws a gapped row with an Svg meter and a native Compact button', async ($, on) => {
+  const clock = mock.clock(on, { now: T0 })
+  isolate(on, { native: { warm: true, ttl: '1h', expires_at: (T0 + 40 * 60000) / 1000, hit_ratio: 0.91, misses: 2, recache_tokens_if_cold: 180000 } })
+  const calls: unknown[] = []
+  on('session.compact', async () => {
+    calls.push(1)
+    return { messages: [{ role: 'user', text: 'summary', toolUses: [] }], tokensBefore: 180000, tokensAfter: 9000 }
+  })
+  const box = stepper(on)
+  box.usage = usage('claude-opus-5-5', 170000, 10000, 500)
+  await step($)
+  await clock.advance(1000)
+  const ui = await mount($, 'desktop')
+  const text = await lineText(ui)
+  expect(text).toContain('warm 40m')
+  expect(text).toContain('91% hit')
+  expect(text).not.toMatch(/[│▰▱]/)
+  expect(await ui.find({ type: 'Text', text: 'cache' })).toBeDefined()
+  expect(await ui.find({ type: 'Svg' })).toBeDefined()
+  expect((await ui.find({ type: 'Button' }))?.props).not.toMatchObject({ plain: true })
+  await ui.press({ key: 'compact' })
+  expect(calls).toEqual([1])
+})
 
 test('native prompt_cache wins: TTL, expiry, hit ratio and re-cache size come from Claude Code', async ($, on) => {
   const clock = mock.clock(on, { now: T0 })

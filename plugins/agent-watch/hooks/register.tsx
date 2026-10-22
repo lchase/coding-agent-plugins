@@ -1,10 +1,12 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Run, Settings } from '../types'
+import type { AgentRow, Run, Settings } from '../types'
+import type { Seg } from './lib'
 import {
   HELP,
   MAIN,
+  SEP,
   addCall,
   addSkill,
   addUsage,
@@ -14,6 +16,7 @@ import {
   seconds,
   statusColor,
   statusMark,
+  text,
   timelineBar,
   tokens,
   touch,
@@ -167,9 +170,27 @@ export const register: Register = on => {
     if (e.props.hasSurvey || !cfg.isOn || r === null) return next(e)
 
     const { Box, Text } = $.ui.resolve(e)
-    const line = (
+    const segs = bandSegs(r, e.props.bodyColumns)
+    const draw = (s: Seg) => (
+      <Text bold={s.bold} dimColor={s.dim} color={s.color} backgroundColor={s.bg}>
+        {s.t}
+      </Text>
+    )
+    // proportional fonts collapse the padded label and │ columns: the groups between them, spaced by gap
+    const groups: Seg[][] = [[]]
+    for (const s of segs) {
+      if (s === SEP) groups.push([])
+      else groups[groups.length - 1]?.push(s)
+    }
+    const line = e.surface !== 'terminal' ? (
+      <Box flexDirection="row" alignItems="center" flexWrap="wrap" columnGap={3}>
+        {groups.map((g, i) => (
+          <Text>{i === 0 ? <Text dimColor bold>{text(g).trim()}</Text> : g.map(draw)}</Text>
+        ))}
+      </Box>
+    ) : (
       <Text wrap="truncate-end">
-        {bandSegs(r, e.props.bodyColumns).map(s => (
+        {segs.map(s => (
           <Text bold={s.bold} dimColor={s.dim} color={s.color} backgroundColor={s.bg}>
             {s.t}
           </Text>
@@ -205,6 +226,31 @@ export const register: Register = on => {
     const rows = tree(r)
     const barWidth = Math.max(10, Math.min(40, (e.props.bodyColumns ?? 60) - 30))
     const models = Object.entries(r.byModel)
+    // the terminal's █ and · cells; elsewhere one Svg span on a 240px track
+    const Span = (start: number, end: number, row: AgentRow) => {
+      if (e.surface === 'terminal') {
+        return (
+          <Text>
+            <Text color={statusColor(row.status)}>{timelineBar(start, end, total, barWidth)}</Text>
+            <Text dimColor> {row.type}</Text>
+          </Text>
+        )
+      }
+      const { Svg } = $.ui.resolve(e)
+      const x = Math.round(Math.min(1, Math.max(0, start / total)) * 240)
+      const w = Math.max(3, Math.round(Math.min(1, Math.max(0, end / total)) * 240) - x)
+      return (
+        <Box flexDirection="row" alignItems="center" gap={1}>
+          <Svg
+            source={`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="8" viewBox="0 0 240 8"><rect width="240" height="8" rx="4" fill="#8080804d"/><rect x="${x}" width="${w}" height="8" rx="4" fill="${statusColor(row.status)}"/></svg>`}
+            alt={`${row.type} ${seconds(end - start)}`}
+            width={240}
+            height={8}
+          />
+          <Text dimColor>{row.type}</Text>
+        </Box>
+      )
+    }
 
     return (
       <Box flexDirection="column">
@@ -239,14 +285,7 @@ export const register: Register = on => {
         </Box>
         <Box flexDirection="column" marginTop={1}>
           <Text bold>Timeline ({seconds(total)})</Text>
-          {rows.map(({ row }) => (
-            <Text>
-              <Text color={statusColor(row.status)}>
-                {timelineBar(row.startedAt - r.startedAt, (row.endedAt ?? now) - r.startedAt, total, barWidth)}
-              </Text>
-              <Text dimColor> {row.type}</Text>
-            </Text>
-          ))}
+          {rows.map(({ row }) => Span(row.startedAt - r.startedAt, (row.endedAt ?? now) - r.startedAt, row))}
         </Box>
       </Box>
     )
