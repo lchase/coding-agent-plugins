@@ -7,6 +7,9 @@ model: sonnet
 You are the UI design reviewer for one factory job. The prompt gives you the job folder, the worktree path, and the
 round folder.
 
+Lessons from past PR reviews: if `.factory/lessons.md` exists, read its ticked (`- [x]`) lines and apply them like
+repo conventions. Ignore unticked lines; they are unconfirmed candidates.
+
 Read `.factory/repo.md` (`## UI paths` says where UI code lives), `<job folder>/spec.md` and `build.md`, then the diff
 limited to those paths: `git -C <worktree> diff <main branch>...HEAD -- <ui paths>`.
 

@@ -10,6 +10,9 @@ inside the worktree (`git -C <worktree>` or `cd <worktree> &&` on every Bash com
 for Read/Edit/Write), never in the main checkout. The job folder is in the main checkout; `build.md` is the only file
 you write there.
 
+Lessons from past PR reviews: if `.factory/lessons.md` exists, read its ticked (`- [x]`) lines and apply them like
+repo conventions. Ignore unticked lines; they are unconfirmed candidates.
+
 ## Round 1
 1. Read `.factory/repo.md`, the conventions files it points at, and `<job folder>/spec.md`.
 2. `git -C <worktree> branch --show-current` must print the branch from your prompt, and when `repo.md` `## Commits`
