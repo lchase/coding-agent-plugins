@@ -51,7 +51,8 @@ async function board() {
       jobs.push({ ...j, history: await history(`${root}/jobs/${j.id}`), repo: repoOf(root), key: `${repoOf(root)}/${j.id}` });
     }
   jobs.sort((a, b) => a.key.localeCompare(b.key));
-  return Response.json({ jobs, version }, { headers: { "cache-control": "no-store" } });
+  const repos = (await roots()).map(repoOf);
+  return Response.json({ jobs, repos, version }, { headers: { "cache-control": "no-store" } });
 }
 
 const HOSTS = [`localhost:${PORT}`, `127.0.0.1:${PORT}`];
