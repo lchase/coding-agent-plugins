@@ -30,12 +30,25 @@ if (!arg) {
 
 const version: string = (await Bun.file(`${import.meta.dir}/../.claude-plugin/plugin.json`).json()).version;
 
+// Rounds come from the round-N/ folders (source of truth), not from job.json bookkeeping the orchestrator may skip.
+// -> [{ n, v: { security?, ux?, ui?, code?, pr? } }], verdict = first line of review-<k>.md, undefined while missing.
+async function history(dir: string) {
+  const out = [];
+  for await (const d of new Bun.Glob("round-*").scan({ cwd: dir, onlyFiles: false })) {
+    const n = Number(d.slice(6)), v: Record<string, string> = {};
+    for await (const f of new Bun.Glob("review-*.md").scan({ cwd: `${dir}/${d}` }))
+      v[f.slice(7, -3)] = ((await Bun.file(`${dir}/${d}/${f}`).text()).split("\n")[0].match(/^VERDICT:\s*(\w+)/) ?? [])[1] ?? "";
+    out.push({ n, v });
+  }
+  return out.sort((a, b) => a.n - b.n);
+}
+
 async function board() {
   const jobs = [];
   for (const root of await roots())
     for await (const p of new Bun.Glob("jobs/*/job.json").scan({ cwd: root })) {
       const j = await Bun.file(`${root}/${p}`).json();
-      jobs.push({ ...j, repo: repoOf(root), key: `${repoOf(root)}/${j.id}` });
+      jobs.push({ ...j, history: await history(`${root}/jobs/${j.id}`), repo: repoOf(root), key: `${repoOf(root)}/${j.id}` });
     }
   jobs.sort((a, b) => a.key.localeCompare(b.key));
   return Response.json({ jobs, version }, { headers: { "cache-control": "no-store" } });
