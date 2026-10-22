@@ -49,13 +49,19 @@
   .avg { margin-left: auto; font-family: var(--mono); font-size: 12px; line-height: 16px; color: var(--muted); }
   .status.err { color: var(--human); } .status.err::before { background: var(--human); animation: none; }
 
-  .board { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 16px; padding: 24px; align-items: start; }
+  .board { display: grid; grid-template-columns: var(--cols, repeat(8, minmax(0, 1fr))); gap: 16px; padding: 24px; align-items: start; }
   .col { min-width: 0; }
   .col-head { display: flex; align-items: baseline; gap: 8px; padding: 0 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
   .col-head h2 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 500; white-space: nowrap; }
   .col-head .who { font-family: var(--mono); font-size: 12px; line-height: 16px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .col-head .count { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--muted); }
   .col.human h2 { color: var(--human); } .col.merged h2 { color: var(--merged); }
+  /* collapsed empty column: a slim strip with the name running down it */
+  .col.slim { align-self: stretch; min-height: 320px; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 0; border: 1px solid var(--line); border-radius: 4px; }
+  .col.slim .v { writing-mode: vertical-rl; display: flex; align-items: center; gap: 8px; }
+  .col.slim h2 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 500; white-space: nowrap; }
+  .col.slim .who { font-family: var(--mono); font-size: 12px; line-height: 16px; color: var(--faint); white-space: nowrap; }
+  .col.slim .count { font-family: var(--mono); font-size: 12px; color: var(--muted); }
   .empty { color: var(--faint); font-size: 12px; line-height: 16px; padding: 20px 12px; border: 1px dashed var(--line); border-radius: 4px; text-align: center; }
 
   .card { display: block; width: 100%; text-align: left; cursor: pointer; background: var(--card); border: 1px solid var(--line-strong); border-radius: 4px; padding: 12px; margin-bottom: 12px; transition: border-color .2s, box-shadow .2s; }
@@ -96,6 +102,7 @@
   .tool svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .tool::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%); padding: 4px 8px; border-radius: 4px; background: var(--ink); color: var(--bg); font: 12px/16px var(--mono); white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .15s; }
   .tool:hover::after, .tool:focus-visible::after { opacity: 1; }
+  .toolbar .sep { width: 1px; margin: 6px 4px; background: var(--line-strong); }
 
   /* Drawer */
   .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .2s; }
@@ -137,7 +144,7 @@
   .verdict.warn { color: var(--changes); background: color-mix(in srgb, var(--changes) 18%, transparent); }
   .verdict.stop { color: var(--human); background: color-mix(in srgb, var(--human) 18%, transparent); }
 
-  @media (max-width: 1100px) { .board { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 24px; } }
+  @media (max-width: 1100px) { .board { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 24px; } .col.slim { align-self: start; min-height: 0; flex-direction: row; padding: 8px 12px; } .col.slim .v { writing-mode: horizontal-tb; } }
   @media (max-width: 640px) {
     header, .repos { padding-left: 16px; padding-right: 16px; }
     .board { grid-template-columns: 1fr; padding: 16px; }
@@ -158,6 +165,8 @@
   <button class="tool" data-copy="/factory approve &lt;job-id&gt;" data-tip="/factory approve &lt;job-id&gt;" aria-label="/factory approve &lt;job-id&gt;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
   <button class="tool" data-copy="/factory rework &lt;job-id&gt; &lt;note&gt;" data-tip="/factory rework &lt;job-id&gt; &lt;note&gt;" aria-label="/factory rework &lt;job-id&gt; &lt;note&gt;"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg></button>
   <button class="tool" data-copy="/factory pr-sync &lt;job-id&gt;" data-tip="/factory pr-sync &lt;job-id&gt;" aria-label="/factory pr-sync &lt;job-id&gt;"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V10a3 3 0 0 0-3-3h-3m2.5-2.5L12 7l2.5 2.5"/></svg></button>
+  <span class="sep" aria-hidden="true"></span>
+  <button class="tool" id="compact" aria-pressed="true"></button>
 </nav>
 
 <div class="scrim" data-close></div>
@@ -183,6 +192,17 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 
 let repo = null; try { repo = localStorage.getItem("factory.repo"); } catch {}
 let repos = [], lastRepos = "";
+let compact = true; try { compact = localStorage.getItem("factory.compact") !== "off"; } catch {}
+// inward arrows = collapse empty columns, outward = expand them; the icon shows what a click does
+const COMPACT_ICON = {
+  on: ['expand empty columns', '<path d="M3 12h7m0 0-3-3m3 3-3 3M21 12h-7m0 0 3-3m-3 3 3 3M12 4v16"/>'],
+  off: ['collapse empty columns', '<path d="M10 12H3m0 0 3-3m-3 3 3 3M14 12h7m0 0-3-3m3 3-3 3M12 4v16"/>'],
+};
+function renderCompact() {
+  const [tip, icon] = COMPACT_ICON[compact ? "on" : "off"], b = $("compact");
+  b.dataset.tip = tip; b.setAttribute("aria-label", tip); b.setAttribute("aria-pressed", String(compact));
+  b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg>`;
+}
 let jobs = [], lastBoard = "", openId = null, openPath = null, openText = null;
 
 // ---- board ----
@@ -231,7 +251,10 @@ function render() {
   renderRepos();
   const shown = jobs.filter(j => !repo || j.repo === repo);
   renderAvg(shown);
+  const slim = k => compact && !shown.some(j => j.stage === k);
+  $("board").style.setProperty("--cols", STAGES.map(([k]) => slim(k) ? "40px" : "minmax(0, 1fr)").join(" "));
   const html = STAGES.map(([k, label, who, cls]) => {
+    if (slim(k)) return `<section class="col slim ${cls || ""}" aria-label="${label}: none"><span class="count">0</span><div class="v"><h2>${label}</h2><span class="who">${who}</span></div></section>`;
     const inCol = shown.filter(j => j.stage === k);
     const cards = inCol.slice().reverse().map(card).join("");
     return `<section class="col ${cls || ""}"><div class="col-head"><h2>${label}</h2><span class="who">${who}</span><span class="count">${inCol.length || ""}</span></div>${cards || '<div class="empty">none</div>'}</section>`;
@@ -301,6 +324,7 @@ document.addEventListener("click", e => {
     const set = t => tool ? (cp.dataset.tip = t) : (cp.textContent = t);
     set("copied"); setTimeout(() => set(was), 1200); return;
   }
+  if (e.target.closest("#compact")) { compact = !compact; try { localStorage.setItem("factory.compact", compact ? "on" : "off"); } catch {} renderCompact(); return render(); }
   const rf = e.target.closest("[data-repo]");
   if (rf) { repo = rf.dataset.repo || null; try { repo ? localStorage.setItem("factory.repo", repo) : localStorage.removeItem("factory.repo"); } catch {} return render(); }
   const c = e.target.closest("[data-job]"); if (c) return openDrawer(c.dataset.job);
@@ -352,7 +376,7 @@ function markdown(src) {
   return html;
 }
 
-poll(); setInterval(poll, POLL_MS);
+renderCompact(); poll(); setInterval(poll, POLL_MS);
 </script>
 </body>
 </html>
