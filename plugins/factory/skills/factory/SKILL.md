@@ -89,6 +89,7 @@ Agent definitions live in this plugin's `agents/` (one file per box). Model per 
 ```
 <repo>/.factory/repo.md                       repo profile (from /factory setup), read by every agent
 <repo>/.factory/backlog.md                    queue for /factory next
+<repo>/.factory/lessons.md                    rules learned from PR reviews (orchestrator drafts, the user ticks), read by every agent
 <repo>/.factory/jobs/<id>/job.json            job state (orchestrator writes, dashboard reads)
 <repo>/.factory/jobs/<id>/feature.md          the request, verbatim (orchestrator)
 <repo>/.factory/jobs/<id>/spec.md             spec-writer
@@ -122,8 +123,10 @@ main checkout.
 
 1. `mkdir -p .factory`. Spawn `repo-profiler` with prompt `Repo root: <absolute path>. Write .factory/repo.md.` Wait.
 2. If `.factory/backlog.md` is missing, write it with the header `# Factory backlog` and one line explaining
-   `- [ ] <feature>` per line.
-3. Ensure `.gitignore` contains `.factory/jobs/` and `.factory/backlog.md` (a personal working queue) and, when `repo.md` `## Worktrees` is a directory inside the repo,
+   `- [ ] <feature>` per line. If `.factory/lessons.md` is missing, write it with the header `# Factory lessons` and
+   one line: `Tick a candidate (- [x]) to accept it; agents read ticked lines only.`
+3. Ensure `.gitignore` contains `.factory/jobs/`, `.factory/backlog.md` (a personal working queue) and
+   `.factory/lessons.md` (personal, like the backlog) and, when `repo.md` `## Worktrees` is a directory inside the repo,
    that directory too (append if missing). Nothing to add for `orca`.
 4. Print `repo.md` in full and stop: "Review `.factory/repo.md`, then run your `/factory` command again." Whether
    `repo.md` gets committed is the user's call (committing it gives teammates the same factory behaviour).
@@ -249,6 +252,14 @@ in step 5. `<wt>` and `<branch>` below are the `worktree` and `branch` fields of
       `resolveReviewThread`) only when a bot raised it and it was fixed; leave human threads for their author to resolve.
       Set stage `pr-open`, `note` = `<k> comments answered, waiting for review`, and report what was fixed and what was
       declined.
+
+      **Lessons.** For each `human` item the builder marked `fixed` this round, ask whether the fix generalises beyond
+      this job (a rule that would have prevented the comment on a different change, e.g. "name the containing entity
+      in validation errors, not just the field"). One-off fixes are skipped. For each that does, append
+      `- [ ] <one-line rule> (job <id>, comment <comment-id>)` to `.factory/lessons.md` (create it as in setup if
+      missing), unless an existing line already says the same. List the new candidates in the report and tell the user
+      to tick the ones they accept. Never tick a candidate yourself. When there are more than 30 ticked lines, also
+      propose which to merge or remove; the user decides.
    4. **Ready check** (no feedback). All of: zero unresolved threads, `reviewDecision` is `APPROVED` or empty (no review
       required by branch protection), no `CHANGES_REQUESTED`, every check `SUCCESS`/`NEUTRAL`/`SKIPPED`, `mergeable`
       not `CONFLICTING`. Pass → stage `ready`, `note` = `all clear, merge the PR`; tell the user the URL. Otherwise stage

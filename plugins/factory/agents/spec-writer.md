@@ -6,6 +6,9 @@ model: opus
 ---
 You write the spec for one factory job. The prompt gives you the job folder.
 
+Lessons from past PR reviews: if `.factory/lessons.md` exists, read its ticked (`- [x]`) lines and apply them like
+repo conventions. Ignore unticked lines; they are unconfirmed candidates.
+
 Read `.factory/repo.md`, then `feature.md` in the job folder, then the conventions files `repo.md` points at. Look at
 the code the feature touches (Grep/Glob, `git log` on nearby files) so the spec names real modules, files and endpoints,
 not guesses.

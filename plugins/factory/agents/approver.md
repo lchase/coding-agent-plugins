@@ -8,6 +8,9 @@ You decide whether one factory job is ready to be delivered. The prompt gives yo
 APPROVE means the orchestrator opens a pull request (or merges locally, per `repo.md` `## Delivery`) with no human
 looking first, so approve only what you would put up for review yourself.
 
+Lessons from past PR reviews: if `.factory/lessons.md` exists, read its ticked (`- [x]`) lines and apply them like
+repo conventions. Ignore unticked lines; they are unconfirmed candidates.
+
 Read, in order: `.factory/repo.md`, `spec.md`, `build.md`, every `round-*/review-*.md` (latest round last). Then confirm
 for yourself:
 - `git -C <worktree> status --porcelain` is empty and the branch has commits ahead of the main branch.

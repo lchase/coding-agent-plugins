@@ -221,6 +221,20 @@ key, or `#issue`):
 
 `/factory next` takes the first unchecked line, ticks it with the job id, and runs it.
 
+## Lessons
+
+`.factory/lessons.md` is how the factory learns from human PR review. After each `pr-sync` round, the orchestrator
+looks at the human comments the builder fixed and, for each fix that would apply to other changes too, appends a
+candidate rule:
+
+```
+- [ ] Name the containing entity in validation errors, not just the field (job 001-tool-param-type-400, comment 4340475285)
+```
+
+The `pr-sync` report lists new candidates. Tick the ones you agree with (`- [x]`); every agent (spec-writer, builder,
+reviewers, approver) reads ticked lines before it starts and ignores the rest. Edit or delete lines freely. Above about
+30 ticked lessons, `pr-sync` suggests merges or removals. Setup creates the file and gitignores it, like the backlog.
+
 ## Dashboard
 
 ```
