@@ -3,6 +3,7 @@
 // bun serve.ts example      -> dummy data bundled with the plugin (no registry)
 // bun serve.ts <dir>        -> any dir containing jobs/*/job.json (no registry)
 // GET /board.json is assembled from <root>/jobs/*/job.json; each job gets key "<repo>/<id>", repo = folder holding .factory.
+// Loopback only, and a Host header that is not localhost is refused (a DNS-rebinding page cannot read the board).
 // If the port is taken, a board is already up: the repo is registered (the running server re-reads the registry) and we exit.
 import { existsSync, mkdirSync } from "fs";
 import { basename, dirname, resolve } from "path";
@@ -40,10 +41,14 @@ async function board() {
   return Response.json({ jobs, version }, { headers: { "cache-control": "no-store" } });
 }
 
+const HOSTS = [`localhost:${PORT}`, `127.0.0.1:${PORT}`];
+
 try {
   Bun.serve({
     port: PORT,
+    hostname: "127.0.0.1",
     async fetch(req) {
+      if (!HOSTS.includes(req.headers.get("host") ?? "")) return new Response("bad host", { status: 403 });
       const path = decodeURIComponent(new URL(req.url).pathname);
       if (path.includes("..")) return new Response("nope", { status: 400 });
       if (path === "/board.json") return board();
