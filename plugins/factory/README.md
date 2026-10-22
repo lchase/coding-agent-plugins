@@ -120,7 +120,7 @@ Each job is a folder:
 
 ```
 .factory/jobs/003-rate-limiting/
-  job.json            state, drives the dashboard
+  job.json            stage, worktree, branch, PR, note (the rest of the board is read from the files below)
   feature.md          your input, verbatim, with a Source: line
   spec.md             spec-writer
   build.md            builder; first line STATUS: READY or STATUS: BLOCKED
@@ -187,7 +187,8 @@ Reviewers (people and bots) then do their thing. Whenever you want the factory t
 ```
 
 One pass: it reads unresolved review threads, `CHANGES_REQUESTED` reviews, top-level comments and failed CI checks,
-writes them as `round-N/review-pr.md`, and resumes the builder. The builder fixes each item or says why not. The
+writes them as `round-N/review-pr.md`, and resumes the builder. The builder answers each item with one line in
+`build.md`: `fixed`, `declined` or `no-change`, which is what the dashboard counts. The
 orchestrator pushes the fixes (plain push), replies on every thread with what changed or why it did not, and resolves
 only bot threads it fixed; human threads are left for their author to resolve. When no thread is open, the review
 decision is approved (or not required), CI is green and there is no conflict, the card moves to **Ready**. You merge
@@ -229,8 +230,11 @@ bun "$CLAUDE_PLUGIN_ROOT/dashboard/serve.ts" example
 The board is at <http://localhost:8765>. It is one board for every repo: each run registers the current repo in
 `~/.factory/repos.json` (stale paths are skipped), a second repo's `serve` just joins the running board, and cards
 are keyed `repo/job-id`. Eight columns (Spec, Build, Review, Approve, PR review, Ready, Merged, Needs human);
-each review round is a row of four chips that fill in as verdicts land; needs-human cards are
-highlighted with the command to run. Click a card for a drawer with every file of that job,
+each review round is a row of four chips that fill in as verdicts land (a PR round is one "PR review" chip);
+needs-human cards are highlighted with the command to run. A job with a PR shows how many PR rounds it took and how
+many human review items the builder fixed; the header averages both over PRs that reached Ready or Merged, following
+the repo filter. That is the factory's quality measure: fewer PR rounds and fewer human fixes mean the internal
+reviewers caught more. Click a card for a drawer with every file of that job,
 rendered. It polls every two seconds, so leave it open while jobs run.
 
 `$CLAUDE_PLUGIN_ROOT` is set inside Claude Code; from a plain shell use the installed plugin

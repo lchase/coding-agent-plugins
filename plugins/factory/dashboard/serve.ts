@@ -2,7 +2,8 @@
 //                              repo's ./.factory is added to the registry first
 // bun serve.ts example      -> dummy data bundled with the plugin (no registry)
 // bun serve.ts <dir>        -> any dir containing jobs/*/job.json (no registry)
-// GET /board.json is assembled from <root>/jobs/*/job.json; each job gets key "<repo>/<id>", repo = folder holding .factory.
+// GET /board.json is assembled from <root>/jobs/*/job.json plus what the job folder's files say (title, rounds, PR
+// quality); each job gets key "<repo>/<id>", repo = folder holding .factory.
 // Loopback only, and a Host header that is not localhost is refused (a DNS-rebinding page cannot read the board).
 // If the port is taken, a board is already up: the repo is registered (the running server re-reads the registry) and we exit.
 import { existsSync, mkdirSync } from "fs";
@@ -43,12 +44,37 @@ async function history(dir: string) {
   return out.sort((a, b) => a.n - b.n);
 }
 
+const read = async (p: string) => (await Bun.file(p).exists()) ? Bun.file(p).text() : "";
+
+// Title: spec.md's first heading, else feature.md's first line after "Source:".
+async function title(dir: string) {
+  const spec = (await read(`${dir}/spec.md`)).match(/^# (.+)$/m)?.[1];
+  return spec ?? (await read(`${dir}/feature.md`)).split("\n").find(l => l.trim() && !l.startsWith("Source:"))?.replace(/^#+\s*/, "");
+}
+
+// PR quality: rounds with review-pr.md, and items fixed per human/bot. Items are "### <id> ... (human|bot <author>)"
+// in review-pr.md; outcomes are the builder's "- <id> (<gist>): fixed|declined|no-change" lines in build.md.
+async function quality(dir: string, hist: { n: number; v: Record<string, string> }[]) {
+  const out = await read(`${dir}/build.md`), fixed = new Set<string>(), q = { rounds: 0, human: 0, bot: 0 };
+  for (const m of out.matchAll(/^- (\S+) \(.*?\): (fixed|declined|no-change)\b/gm)) if (m[2] === "fixed") fixed.add(m[1]);
+  for (const { n, v } of hist) {
+    if (v.pr === undefined) continue;
+    q.rounds++;
+    for (const m of (await read(`${dir}/round-${n}/review-pr.md`)).matchAll(/^### (\S+) .*\((human|bot)\b/gm))
+      if (fixed.has(m[1])) q[m[2] as "human" | "bot"]++;
+  }
+  return q;
+}
+
 async function board() {
   const jobs = [];
   for (const root of await roots())
     for await (const p of new Bun.Glob("jobs/*/job.json").scan({ cwd: root })) {
-      const j = await Bun.file(`${root}/${p}`).json();
-      jobs.push({ ...j, history: await history(`${root}/jobs/${j.id}`), repo: repoOf(root), key: `${repoOf(root)}/${j.id}` });
+      const j = await Bun.file(`${root}/${p}`).json(), dir = `${root}/jobs/${j.id}`, hist = await history(dir);
+      jobs.push({
+        ...j, title: await title(dir) ?? j.id, history: hist, quality: await quality(dir, hist),
+        repo: repoOf(root), key: `${repoOf(root)}/${j.id}`,
+      });
     }
   jobs.sort((a, b) => a.key.localeCompare(b.key));
   const repos = (await roots()).map(repoOf);

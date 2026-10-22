@@ -1,23 +1,6 @@
 {
   "id": "002-tts-slow-warn",
-  "title": "Warn on slow TTS synthesis",
   "branch": "factory/002-tts-slow-warn",
   "stage": "needs-human",
-  "round": 2,
-  "reviews": {
-    "security": "PASS",
-    "ux": "PASS",
-    "ui": "PASS",
-    "code": "PASS"
-  },
-  "rounds": [
-    {
-      "security": "CHANGES",
-      "ux": "PASS",
-      "ui": "PASS",
-      "code": "CHANGES"
-    }
-  ],
-  "note": "Touches session logging config",
-  "updated": "2026-10-18T18:41:00Z"
+  "note": "Touches session logging config"
 }

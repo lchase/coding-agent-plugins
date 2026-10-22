@@ -9,6 +9,7 @@ You write the repo profile the factory's agents rely on. The prompt gives you th
 Read, where present: `CLAUDE.md`, `AGENTS.md`, `README.md`, `CONTRIBUTING.md`, `package.json` (scripts), `pom.xml` /
 `build.gradle`, `pyproject.toml` / `Makefile`, `go.mod`, `Cargo.toml`, CI workflows under `.github/workflows/` (the real
 test and lint commands live there), `.gitignore`, `git log --oneline -30` (commit title convention, ticket prefixes),
+`git log -20 --format=%ae` and `git config user.email` (the author email this user commits with here),
 `git remote -v` (GitHub?), and any lint or style config at the root.
 
 Then write exactly one file, `.factory/repo.md`, in this format. Fill every heading; write `none` rather than leaving
@@ -37,6 +38,7 @@ Pointers to CLAUDE.md / AGENTS.md / style guides, plus rules not written there.
 
 ## Commits
 - Prefix: rule (e.g. "issue key from feature.md Source, else factory/<id>")
+- Author email: <the user's address on recent commits here> (the user confirms it when reviewing this profile)
 - Signed: yes | no
 - Merge: squash | no-ff
 

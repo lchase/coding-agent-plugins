@@ -46,6 +46,7 @@
   h1 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 500; }
   .status { font-family: var(--mono); font-size: 12px; line-height: 16px; color: var(--muted); }
   .status::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--live); margin-right: 8px; vertical-align: 0; animation: pulse 1.6s ease-in-out infinite; }
+  .avg { margin-left: auto; font-family: var(--mono); font-size: 12px; line-height: 16px; color: var(--muted); }
   .status.err { color: var(--human); } .status.err::before { background: var(--human); animation: none; }
 
   .board { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 16px; padding: 24px; align-items: start; }
@@ -77,6 +78,7 @@
   .chip.wait { animation: pulse 1.6s ease-in-out infinite; }
   .chip.PASS { border-color: transparent; color: var(--pass); background: color-mix(in srgb, var(--pass) 18%, transparent); }
   .chip.CHANGES { border-color: transparent; color: var(--changes); background: color-mix(in srgb, var(--changes) 18%, transparent); }
+  .stats { margin-top: 4px; font-family: var(--mono); font-size: 12px; line-height: 16px; color: var(--muted); }
   .note { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line-strong); font-size: 12px; line-height: 16px; color: var(--muted); overflow-wrap: anywhere; }
   .cmd { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
   .cmd code { flex: 1; min-width: 0; overflow-wrap: anywhere; }
@@ -147,7 +149,7 @@
 </style>
 </head>
 <body>
-<header><div class="brand"><span class="logo" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V6l5-3 5 3v6l-5 3-5-3z"/><path d="M3 6l5 3 5-3M8 9v6"/></svg></span><h1>Factory</h1><span class="ver" id="ver"></span></div><div class="status" id="status">connecting…</div></header>
+<header><div class="brand"><span class="logo" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V6l5-3 5 3v6l-5 3-5-3z"/><path d="M3 6l5 3 5-3M8 9v6"/></svg></span><h1>Factory</h1><span class="ver" id="ver"></span></div><span class="avg" id="avg"></span><div class="status" id="status">connecting…</div></header>
 <nav class="repos" id="repos" aria-label="Filter by repo"></nav>
 <main class="board" id="board"></main>
 <nav class="toolbar" aria-label="Factory commands">
@@ -197,12 +199,9 @@ function prRow(n, verdict) {
 const cmd = c => `<span class="cmd"><code>${esc(c)}</code><span class="copy" role="button" tabindex="0" data-copy="${esc(c)}" title="Copy" aria-label="Copy command">copy</span></span>`;
 function card(j) {
   const live = LIVE.has(j.stage), human = j.stage === "needs-human" || j.stage === "ready";
-  // round folders on disk win; job.json rounds/reviews is only the fallback (e.g. the bundled example has no folders)
-  const rows = j.history?.length ? j.history.map(({ n, v }) => v.pr !== undefined ? prRow(n, v.pr) : chips(n, v, j.stage === "review" && n === j.round))
-    : (j.rounds || []).map((v, i) => chips(i + 1, v, false));
-  const cur = j.reviews && REVIEWERS.some(([k]) => j.reviews[k] === "PASS" || j.reviews[k] === "CHANGES");
-  if (!j.history?.length && j.round > rows.length && j.reviews && (cur || j.stage === "review")) rows.push(chips(j.round, j.reviews, j.stage === "review"));
-  const pr = j.pr ? `<div class="branch">PR #${esc(j.pr.number)}</div>` : "";
+  const last = roundOf(j);
+  const rows = j.history.map(({ n, v }) => v.pr !== undefined ? prRow(n, v.pr) : chips(n, v, j.stage === "review" && n === last));
+  const pr = j.pr ? `<div class="branch">PR #${esc(j.pr.number)}</div>${j.quality.rounds ? `<div class="stats">${prStats(j.quality)}</div>` : ""}` : "";
   const note = j.stage === "ready" ? `<div class="note">${esc(j.note || "all clear")}<br>${j.pr ? esc(j.pr.url) : ""}</div>`
              : j.stage === "pr-open" ? `<div class="note">${j.note ? esc(j.note) + "<br>" : ""}${cmd(`/factory pr-sync ${j.id}`)}</div>`
              : human ? `<div class="note">${j.note ? esc(j.note) + "<br>" : ""}${cmd(`/factory approve ${j.id}`)}</div>`
@@ -213,6 +212,15 @@ function card(j) {
     <p class="title">${esc(j.title || j.id)}</p><div class="branch">${esc(j.branch || "")}</div>${pr}
     ${rows.length ? `<div class="rounds">${rows.join("")}</div>` : ""}${note}</div>`;
 }
+const roundOf = j => j.history.at(-1)?.n ?? 0;
+const qty = (k, one, many) => `${k} ${k === 1 ? one : many}`;
+const prStats = q => [qty(q.rounds, "PR round", "PR rounds"), qty(q.human, "human fix", "human fixes"), q.bot ? qty(q.bot, "bot fix", "bot fixes") : ""].filter(Boolean).join(" · ");
+// Header: average PR rounds and human fixes over jobs whose PR reached ready or merged, under the repo filter.
+function renderAvg(shown) {
+  const done = shown.filter(j => j.pr && (j.stage === "ready" || j.stage === "merged"));
+  const avg = k => (done.reduce((s, j) => s + j.quality[k], 0) / done.length).toFixed(1);
+  $("avg").textContent = done.length ? `avg over ${qty(done.length, "PR", "PRs")}: ${avg("rounds")} rounds · ${avg("human")} human fixes` : "";
+}
 function renderRepos() {
   if (repo && !repos.includes(repo)) repo = null;
   const count = r => jobs.filter(j => !r || j.repo === r).length;
@@ -222,6 +230,7 @@ function renderRepos() {
 function render() {
   renderRepos();
   const shown = jobs.filter(j => !repo || j.repo === repo);
+  renderAvg(shown);
   const html = STAGES.map(([k, label, who, cls]) => {
     const inCol = shown.filter(j => j.stage === k);
     const cards = inCol.slice().reverse().map(card).join("");
@@ -253,12 +262,11 @@ async function fetchJobFile(j, f) {
 }
 async function refreshDrawer() {
   const j = jobs.find(x => x.key === openId); if (!j) return;
-  $("d-num").textContent = `${j.key} · ${j.stage}${j.round ? ` · round ${j.round}` : ""}`;
+  $("d-num").textContent = `${j.key} · ${j.stage}${roundOf(j) ? ` · round ${roundOf(j)}` : ""}`;
   $("d-title").textContent = j.title || j.id; $("d-branch").textContent = j.branch || "";
 
-  const rounds = Math.max(j.round || 0, (j.rounds || []).length);
   const names = ["feature.md", "spec.md", "build.md", "decision.md"];
-  for (let n = 1; n <= rounds; n++) for (const [k] of [...REVIEWERS, ["human"], ["pr"]]) names.push(`round-${n}/review-${k}.md`);
+  for (const { n } of j.history) for (const [k] of [...REVIEWERS, ["human"], ["pr"]]) names.push(`round-${n}/review-${k}.md`);
   const files = [];
   await Promise.all(names.map(async f => {
     const key = `${j.key}/${f}`;
