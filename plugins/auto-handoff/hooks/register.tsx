@@ -190,8 +190,10 @@ export const register: Register = on => {
 
     // Load-time baseline: a file already there is "seen", not "just saved".
     const model = await $.session.model().catch(() => null)
+    const percent = (await $.session.usage().catch(() => null))?.context.percent
     await update($, band, () => ({
       ...IDLE,
+      percent: typeof percent === 'number' ? percent : null,
       model,
       seen: mtime ?? 0,
       from: mtime !== undefined && !resumeFlag ? { at: mtime, objective: '' } : null,
@@ -326,16 +328,13 @@ export const register: Register = on => {
         return update($, band, cur => ({ ...cur, from: null }))
       }
       let parts
+      let action = null
       if (b.phase === 'saved' && b.savedAt !== null) {
-        parts = [
-          <Text color={GREEN}>✓ saved {hhmm(b.savedAt)}</Text>,
-          <Button key="clear" hotkey="c" label="Clear & continue" onPress={() => clearAndContinue($)} />,
-        ]
+        parts = [<Text color={GREEN}>✓ saved {hhmm(b.savedAt)}</Text>]
+        action = <Button key="clear" hotkey="c" label="Clear & continue" onPress={() => clearAndContinue($)} />
       } else if (b.phase === 'idle' && b.from !== null && b.percent !== null && b.percent < s.threshold && b.from.at > 0) {
-        parts = [
-          <Text>from {ago(now - b.from.at)}: {b.from.objective === '' ? 'handoff' : b.from.objective}</Text>,
-          <Button key="resume" hotkey="r" label="Resume" onPress={resume} />,
-        ]
+        parts = [<Text>from {ago(now - b.from.at)}: {b.from.objective === '' ? 'handoff' : b.from.objective}</Text>]
+        action = <Button key="resume" hotkey="r" label="Resume" onPress={resume} />
       } else {
         const percent = b.percent ?? 0
         const isHot = b.phase === 'ask' || b.phase === 'saving' || percent >= s.threshold
@@ -359,15 +358,18 @@ export const register: Register = on => {
               {s.mode === 'auto' ? 'auto-saves' : 'saves'} at <Text bold color={AMBER}>{s.threshold}%</Text>
             </Text>
           ),
-          b.phase === 'saving' ? null : <Button key="save" hotkey="h" label="Save now" onPress={() => startSave($, 'manual')} />,
         ]
+        if (b.phase !== 'saving') action = <Button key="save" hotkey="h" label="Save now" onPress={() => startSave($, 'manual')} />
       }
 
       return stack(
         <Box flexDirection="row" alignItems="center" flexWrap="wrap" gap={1}>
-          <Text dimColor bold>handoff</Text>
+          <Box width={8}><Text dimColor bold>handoff</Text></Box>
           {parts}
           {branch !== '' && <Text color={isDefault ? undefined : BRANCH_COLOR} dimColor={isDefault}>⎇ {shown}</Text>}
+          {/* native buttons stand taller than a text row: keep them at the trailing edge */}
+          <Box flexGrow={1} />
+          {action}
         </Box>,
       )
     }

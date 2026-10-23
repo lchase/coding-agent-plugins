@@ -183,9 +183,13 @@ export const register: Register = on => {
       else groups[groups.length - 1]?.push(s)
     }
     const line = e.surface !== 'terminal' ? (
-      <Box flexDirection="row" alignItems="center" flexWrap="wrap" columnGap={3}>
+      <Box flexDirection="row" alignItems="center" flexWrap="wrap" columnGap={2}>
         {groups.map((g, i) => (
-          <Text>{i === 0 ? <Text dimColor bold>{text(g).trim()}</Text> : g.map(draw)}</Text>
+          i === 0 ? (
+          <Box width={8}><Text dimColor bold>{text(g).trim()}</Text></Box>
+        ) : (
+          <Text>{g.map(draw)}</Text>
+        )
         ))}
       </Box>
     ) : (
