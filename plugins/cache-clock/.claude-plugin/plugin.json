@@ -1,6 +1,6 @@
 {
   "name": "cache-clock",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "author": { "name": "Lawrence Chase" },
   "description": "Band line showing whether Claude's prompt cache is still warm. TTL, expiry, and hit ratio come from Claude Code's prompt_cache when /cache-clock setup is installed; otherwise the countdown is an estimate.",
   "types": "./types/index.d.ts",

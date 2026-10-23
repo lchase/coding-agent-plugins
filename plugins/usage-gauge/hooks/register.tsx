@@ -208,8 +208,9 @@ export const register: Register = on => {
         </Box>
       )
       const row = (
-        <Box flexDirection="row" alignItems="center" flexWrap="wrap" columnGap={2}>
-          <Box width={8}><Text dimColor bold>{hasPlan ? 'plan' : 'api'}</Text></Box>
+        <Box flexDirection="row" alignItems="center">
+          <Box width={9} flexShrink={0}><Text dimColor bold>{hasPlan ? 'plan' : 'api'}</Text></Box>
+          <Box flexDirection="row" alignItems="center" flexWrap="wrap" flexGrow={1} columnGap={2}>
           {s.rateLimits.map(l => {
             const at = resetText(l, now)
             const out = l.kind === 'five_hour' ? paceOutMs(all?.[l.kind], l.resetsAt, now) : undefined
@@ -229,6 +230,7 @@ export const register: Register = on => {
               {last !== undefined ? <Text dimColor> (+{money(last)})</Text> : null}
             </Text>
           ) : null}
+          </Box>
         </Box>
       )
       const under = await next(e)

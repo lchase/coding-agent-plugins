@@ -293,8 +293,9 @@ export const register: Register = (on, options) => {
       const { Svg } = $.ui.resolve(e)
       const fill = Math.round(Math.max(0, Math.min(1, v.left / ttl)) * 56)
       return (
-        <Box flexDirection="row" alignItems="center" flexWrap="wrap" gap={1}>
-          <Box width={8}><Text dimColor bold>cache</Text></Box>
+        <Box flexDirection="row" alignItems="center">
+          <Box width={9} flexShrink={0}><Text dimColor bold>cache</Text></Box>
+          <Box flexDirection="row" alignItems="center" flexWrap="wrap" flexGrow={1} gap={1}>
           <Text bold color={color}>{v.left > 0 ? `warm ${mins(v.left)}${mark}` : 'COLD'}</Text>
           <Svg
             source={`<svg xmlns="http://www.w3.org/2000/svg" width="56" height="8" viewBox="0 0 56 8"><rect width="56" height="8" rx="4" fill="#8080804d"/><rect width="${fill}" height="8" rx="4" fill="${color}"/></svg>`}
@@ -306,6 +307,7 @@ export const register: Register = (on, options) => {
           {/* native buttons stand taller than a text row: keep them at the trailing edge */}
           <Box flexGrow={1} />
           {v.left > 0 ? <Button key="compact" label="Compact" onPress={compact} /> : null}
+          </Box>
         </Box>
       )
     }
