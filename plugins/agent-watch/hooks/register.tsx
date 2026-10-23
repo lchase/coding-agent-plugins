@@ -183,14 +183,14 @@ export const register: Register = on => {
       else groups[groups.length - 1]?.push(s)
     }
     const line = e.surface !== 'terminal' ? (
-      <Box flexDirection="row" alignItems="center" flexWrap="wrap" columnGap={2}>
-        {groups.map((g, i) => (
-          i === 0 ? (
-          <Box width={8}><Text dimColor bold>{text(g).trim()}</Text></Box>
-        ) : (
-          <Text>{g.map(draw)}</Text>
-        )
-        ))}
+      // one label column and one fixed gap on every band, so all rows start their content at the same x
+      <Box flexDirection="row" alignItems="center">
+        <Box width={9} flexShrink={0}><Text dimColor bold>{text(groups[0] ?? []).trim()}</Text></Box>
+        <Box flexDirection="row" alignItems="center" flexWrap="wrap" flexGrow={1} columnGap={2}>
+          {groups.slice(1).map(g => (
+            <Text>{g.map(draw)}</Text>
+          ))}
+        </Box>
       </Box>
     ) : (
       <Text wrap="truncate-end">

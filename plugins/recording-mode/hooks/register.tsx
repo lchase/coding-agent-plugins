@@ -171,10 +171,12 @@ export const register: Register = on => {
     // label column is 7 wide, the length of 'handoff', so stacked bands line up
     const chip = e.surface !== 'terminal' ? (
       // proportional fonts collapse the padding and box-drawing glyphs, so space the parts with gap
-      <Box flexDirection="row" alignItems="center" gap={1}>
-        <Box width={8}><Text dimColor bold>rec</Text></Box>
-        <Text bold color="#f87171">● {cfg.isStrict ? 'strict' : 'recording'}</Text>
-        <Text dimColor>{note}</Text>
+      <Box flexDirection="row" alignItems="center">
+        <Box width={9} flexShrink={0}><Text dimColor bold>rec</Text></Box>
+        <Box flexDirection="row" alignItems="center" flexWrap="wrap" flexGrow={1} gap={1}>
+          <Text bold color="#f87171">● {cfg.isStrict ? 'strict' : 'recording'}</Text>
+          <Text dimColor>{note}</Text>
+        </Box>
       </Box>
     ) : (
       <Box>

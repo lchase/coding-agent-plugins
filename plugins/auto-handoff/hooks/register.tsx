@@ -363,13 +363,15 @@ export const register: Register = on => {
       }
 
       return stack(
-        <Box flexDirection="row" alignItems="center" flexWrap="wrap" gap={1}>
-          <Box width={8}><Text dimColor bold>handoff</Text></Box>
-          {parts}
-          {branch !== '' && <Text color={isDefault ? undefined : BRANCH_COLOR} dimColor={isDefault}>⎇ {shown}</Text>}
-          {/* native buttons stand taller than a text row: keep them at the trailing edge */}
-          <Box flexGrow={1} />
-          {action}
+        <Box flexDirection="row" alignItems="center">
+          <Box width={9} flexShrink={0}><Text dimColor bold>handoff</Text></Box>
+          <Box flexDirection="row" alignItems="center" flexWrap="wrap" flexGrow={1} gap={1}>
+            {parts}
+            {branch !== '' && <Text color={isDefault ? undefined : BRANCH_COLOR} dimColor={isDefault}>⎇ {shown}</Text>}
+            {/* native buttons stand taller than a text row: keep them at the trailing edge */}
+            <Box flexGrow={1} />
+            {action}
+          </Box>
         </Box>,
       )
     }
