@@ -6,6 +6,8 @@ Use it for a CLI claim, or for an HTTP claim where the user asked to watch the t
 
 If `vhs` is not installed, skip the picture and follow `script-run.md` for the same commands. Do not block the claim on a gif.
 
+When the recording will capture an agent session (the agent's transcript or tool output on screen), turn on recording-mode first if that plugin is installed: `/rec`, or `/rec strict` when amounts and home paths should be hidden too. It masks keys, emails, and private words on screen. It has to be on before `vhs` runs. It does not redact the gif afterward.
+
 ## Tape
 
 `evidence/orders.tape`. vhs has no comment syntax, so the note lives here: `Hide` still runs the exports, and it keeps the fixture token off the gif.

@@ -195,8 +195,8 @@ The surface picks the tool:
 | Surface | Evidence |
 |---|---|
 | UI | Playwright video, trace, and a screenshot at the moment the claim is true |
-| HTTP API | Playwright `request` trace (method, URL, request body, status, response body in the trace viewer, no page) |
-| HTTP API, as text | Hurl file with assertions, or a `.http` file plus a captured response |
+| HTTP API | test-drive `record-api.mjs` transcript when that plugin is installed (request, response, server log, no browser). Otherwise a Playwright `request` trace |
+| HTTP API, as text, without test-drive | Hurl file with assertions, or a `.http` file plus a captured response |
 | CLI, or a terminal picture | vhs tape of a script that exits non-zero when the claim is false |
 | Library or other | A script that imports the same module the app ships, and the captured transcript |
 

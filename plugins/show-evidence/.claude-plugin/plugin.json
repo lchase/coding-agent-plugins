@@ -1,7 +1,7 @@
 {
   "name": "show-evidence",
   "description": "Prove a finished change with replayable, claim-first evidence. Writes a short list of falsifiable claims, records one artifact per claim (Playwright video and trace for UI, a Playwright request trace or a vhs tape or a Hurl transcript for an API, a script run for a CLI or library), and leaves a summary a reviewer can re-run. Each claim is PROVEN, FAILED, or NOT-EVIDENCED.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "Lawrence Chase"
   },

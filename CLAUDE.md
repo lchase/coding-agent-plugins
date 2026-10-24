@@ -39,7 +39,8 @@ package of independently-installable plugins:
    description. Gemini stays root-scoped, so `GEMINI.md` points at the skill and
    `gemini-extension.json` keeps smart-review's version. The skill writes 1 to 5
    falsifiable claims, then records one replayable artifact per claim (Playwright video
-   and trace for UI, Playwright `request` or vhs or Hurl for HTTP, a script run for a CLI
+   and trace for UI, test-drive's `record-api.mjs` for HTTP when that plugin is installed,
+   otherwise Playwright `request` or Hurl, vhs for a terminal, a script run for a CLI
    or library) and a PROVEN / FAILED / NOT-EVIDENCED table. Per-surface notes live in
    `references/`. Own version, bumped with `plugins/show-evidence/scripts/bump-version.sh`
    (those three manifests only).

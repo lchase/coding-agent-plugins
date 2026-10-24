@@ -1,18 +1,21 @@
 ---
 name: show-evidence
 description: >-
-  Use after implementing a change and before opening or updating a pull request,
-  or before handing the work back to a human. Also use when the user asks to
-  prove, verify, show, or demo what changed, or asks for evidence, a recording,
-  a trace, or screenshots of the change. Do not use it to review someone else's
-  diff (use smart-review) or to record a before/after test drive (use test-drive).
+  Use after a change is already made, when that work needs claim-first proof
+  before you open or update a pull request or hand it back to a human. Also use
+  when the user asks to prove, verify, show, or demo what changed, or asks for
+  evidence, a recording, a trace, or screenshots of a finished change. Do not
+  use it to review someone else's diff (use smart-review). If the user is about
+  to change behavior and wants a before/after, route to test-drive
+  (/test-drive:baseline, then /test-drive:compare).
 ---
 
 # show-evidence
 
-A finished change owes the reviewer proof of specific claims. Each artifact exists to
-show one claim (for example "POST /orders returns 201 and a following GET returns the
-saved row"). A tour of the app, with no claim attached, is not evidence.
+This is after-the-fact proof for any change that is already in the tree. A finished
+change owes the reviewer proof of specific claims. Each artifact exists to show one
+claim (for example "POST /orders returns 201 and a following GET returns the saved
+row"). A tour of the app, with no claim attached, is not evidence.
 
 Write the claims before you record anything. Run a checked-in or attached script. Then
 mark every claim **PROVEN**, **FAILED**, or **NOT-EVIDENCED**, with a reason, and put
@@ -26,15 +29,18 @@ needs `ran` or `reproduced`. This skill produces those two rungs as something a 
 can open and re-run:
 
 - **ran** (rung 4): a script that imports the same module the app ships and exercises the claim. `references/script-run.md`.
-- **reproduced** (rung 5): the same behavior in the running app (UI, HTTP, or CLI). The Playwright, vhs, and Hurl references.
+- **reproduced** (rung 5): the same behavior in the running app (UI, HTTP, or CLI). HTTP uses test-drive's `record-api.mjs` when that plugin is installed, and the Playwright or Hurl references otherwise.
 
 Blocking rules and the P0-P3 scale stay in smart-review. This skill does not merge
 findings and does not assign severity.
 
-**test-drive** records one scenario before the edit and replays it after, for a
-before/after verdict. Use that when the user wants the comparison. This skill runs
-after the change and proves claims about the result. It does not need a baseline, and
-it does not rebuild one from the merge-base.
+**test-drive** is the before/after. If the user is about to change behavior and wants
+the old behavior next to the new one, stop this skill and route to
+`/test-drive:baseline` before any edit, then `/test-drive:compare` after the change.
+show-evidence does not record a baseline and does not rebuild one from the merge-base.
+It proves claims about the result after the change exists. When test-drive is
+installed, an HTTP claim reuses its `record-api.mjs` scenario and `redact.mjs` rather
+than a second HTTP recorder (see the HTTP references).
 
 ## 1. Write the claims first
 
@@ -62,15 +68,17 @@ other references.
 | Surface | Evidence | Read |
 |---|---|---|
 | UI, what a person sees | Playwright video, trace, and a screenshot at the moment the claim is true | `references/playwright-ui.md` |
-| HTTP API | Playwright `request` trace: request and response bodies in the trace viewer, no page | `references/playwright-request.md` |
-| HTTP API, reviewer should read text | Hurl file with assertions, or a `.http` file plus captured responses | `references/http-transcript.md` |
+| HTTP API | test-drive `record-api.mjs` transcript when that plugin is installed; otherwise a Playwright `request` trace, no page | `references/playwright-request.md` |
+| HTTP API as a text file, and test-drive is not installed | Hurl file with assertions, or a `.http` file plus captured responses | `references/http-transcript.md` |
 | CLI, or a terminal picture of curl | vhs tape, plus a script whose exit code is the proof | `references/vhs.md` |
 | Library, or a CLI with no picture | Script that imports the shipped module, or a captured transcript of that run | `references/script-run.md` |
 
-Default for HTTP is the Playwright `request` trace. Use Hurl or `.http` when the repo
-already keeps those files, or when the proof should be a diffable text file. Use vhs
-when the claim is a CLI, or when the user asked to watch a terminal. Do not record all
-three for one claim.
+Default for HTTP is test-drive's API scenario when that plugin is installed. It already
+records the request, the response, and the server log, with no browser. Without
+test-drive, use a Playwright `request` trace. Use Hurl or `.http` only in that same
+case, when the proof should be a text file the repo already knows how to run. Use vhs
+when the claim is a CLI, or when the user asked to watch a terminal. Do not record
+more than one of these for one claim.
 
 **Rejected: a throwaway web app in front of a backend.** A small page whose only job is
 to call the API, so there is a browser to film, was considered and dropped. It is a
@@ -83,10 +91,10 @@ instead.
 Evidence is the script plus one run of it. A click-through you cannot repeat is not
 evidence.
 
-- The script is a Playwright spec, a vhs tape, a Hurl or `.http` file, or a small
-  program. Commit it next to existing tests of the same kind, or under `evidence/` when
-  the repo has nowhere else. Attach it to the PR instead of committing only when the
-  user told you not to add files.
+- The script is a test-drive API scenario, a Playwright spec, a vhs tape, a Hurl or
+  `.http` file, or a small program. Commit it next to existing tests of the same kind,
+  or under `evidence/` when the repo has nowhere else. Attach it to the PR instead of
+  committing only when the user told you not to add files.
 - The script imports or calls the thing the app ships. Do not copy the function under
   test into the script.
 - Write down seed data, base URL, auth fixture, and env vars in the summary. Use
@@ -127,7 +135,7 @@ the block in the reply and also write it to the gitignored output directory as
 
 | Claim | Status | Why | Artifact | Re-run |
 |---|---|---|---|---|
-| POST /orders with sku WIDGET-1 qty 2 returns 201, and GET /orders/:id returns that sku and qty | PROVEN | 201, then GET matched sku and qty. Trace has both bodies. | evidence/out/orders/trace.zip | `npx playwright test evidence/orders.spec.ts --trace on` |
+| POST /orders with sku WIDGET-1 qty 2 returns 201, and GET /orders/:id returns that sku and qty | PROVEN | 201, then GET matched sku and qty. Redacted transcript shows both bodies. | evidence/orders/after.result.json | `node <test-drive>/scripts/record-api.mjs --scenario evidence/orders/scenario.json --repo . --side after --out evidence/orders` |
 
 **Assumptions:** API at `http://127.0.0.1:3000`. Orders table empty before the run. Auth header is `Bearer test-token` (a fixture).
 

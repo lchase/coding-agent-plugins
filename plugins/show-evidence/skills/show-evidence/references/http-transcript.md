@@ -1,12 +1,16 @@
 # Hurl and .http
 
-Read `SKILL.md` first. Use this when the HTTP proof should be a text file a reviewer can read without a trace viewer, or when the repo already stores `.hurl` or `.http` requests.
+Read `SKILL.md` first. Read `playwright-request.md` first if the claim is HTTP.
 
-Hurl carries the assertions in the file. A `.http` file is the request document; on its own it does not check anything. Prefer Hurl. Use `.http` when the repo already speaks it, and pair it with a captured response plus a check that exits non-zero when the claim is false.
+## When test-drive is installed
 
-Do not put a web UI in front of the API so you can film it. The transcript is the evidence.
+Do not add a Hurl or `.http` file. test-drive's `record-api.mjs` already writes a redacted text transcript (`after.result.json`) with the request, the response, and the server log lines for each step. Follow `playwright-request.md`.
 
-## Hurl
+## When test-drive is not installed
+
+Use this when a reviewer should read the proof as text, or the repo already stores `.hurl` or `.http` files. Hurl carries the assertions. A `.http` file is only the request: pair it with a captured response and a check that exits non-zero when the claim is false.
+
+Do not put a web UI in front of the API so you can film it.
 
 ```hurl
 # evidence/orders.hurl
@@ -21,7 +25,6 @@ HTTP 201
 [Captures]
 order_id: jsonpath "$.id"
 [Asserts]
-jsonpath "$.id" exists
 jsonpath "$.sku" == "WIDGET-1"
 jsonpath "$.qty" == 2
 
@@ -33,9 +36,7 @@ jsonpath "$.sku" == "WIDGET-1"
 jsonpath "$.qty" == 2
 ```
 
-`{{API_BASE_URL}}` and `{{API_TOKEN}}` are Hurl variables. Pass them with `--variable`. Default the token to a fixture (`test-token`), not a real secret. `--very-verbose` writes the bodies a human should see, and it writes secrets too. Redact the output file before upload (`redaction.md`).
-
-## Run
+Pass variables with `--variable`. Default the token to `test-token`. `--very-verbose` writes bodies, and it writes secrets: run the transcript through redaction before upload (`redaction.md`). Reset the rows the claim reads back, and note that in Assumptions.
 
 ```bash
 mkdir -p evidence/out
@@ -50,52 +51,8 @@ printf 'exit:%s\n' "$code" >> evidence/out/orders.hurl.out
 exit "$code"
 ```
 
-`hurl --test` exits non-zero when an assertion fails. That exit, plus a verbose file that still shows the status and the asserted fields after redaction, is PROVEN. If redaction removed the field the claim is about, re-run with fake data. Do not call the gutted file PROVEN.
+`hurl --test` exits non-zero when an assertion fails. **PROVEN** needs that exit 0 and a verbose file that still shows the status and the asserted fields after redaction. If redaction removed the field the claim is about, re-run with fake data.
 
-Reset the orders table (or whatever the claim reads back) before the run, and note that in Assumptions. Otherwise a second GET can pass for a row this run did not create.
+A repo that already uses `.http` can keep the request there. Capture the response under the gitignored output dir and assert the status in the same command that saves it. Commit or attach the request file. This is rung 5 (`reproduced`) when it hits the running app.
 
-## .http
-
-When the repo already has REST Client or JetBrains HTTP files:
-
-```http
-# evidence/orders.http
-@base = http://127.0.0.1:3000
-@token = test-token
-
-### create order
-POST {{base}}/orders
-Authorization: Bearer {{token}}
-Content-Type: application/json
-
-{
-  "sku": "WIDGET-1",
-  "qty": 2
-}
-```
-
-Capture the response next to it (`evidence/out/orders.response.json`) with curl or the client's save, and assert in a few lines that share the claim:
-
-```bash
-code=$(curl -sS -o evidence/out/orders.response.json -w '%{http_code}' \
-  -X POST http://127.0.0.1:3000/orders \
-  -H 'authorization: Bearer test-token' \
-  -H 'content-type: application/json' \
-  -d '{"sku":"WIDGET-1","qty":2}')
-test "$code" = "201"
-```
-
-Commit or attach `orders.http` (and the Hurl file if you have one). Keep `*.response.json` and `*.hurl.out` under the gitignored output dir.
-
-## Re-run
-
-```bash
-hurl --test \
-  --variable API_BASE_URL=http://127.0.0.1:3000 \
-  --variable API_TOKEN=test-token \
-  evidence/orders.hurl
-```
-
-This is rung 5 (`reproduced`) when it hits the running app.
-
-If `hurl` is not installed and the repo has no `.http` habit, switch to `playwright-request.md` for the same claim.
+If `hurl` is not installed and the repo has no `.http` files, use the Playwright fallback in `playwright-request.md`.
