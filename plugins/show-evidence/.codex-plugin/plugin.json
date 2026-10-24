@@ -1,0 +1,23 @@
+{
+  "name": "show-evidence",
+  "version": "0.1.0",
+  "description": "Prove a finished change with replayable, claim-first evidence: falsifiable claims, one artifact per claim, and a PROVEN / FAILED / NOT-EVIDENCED summary a reviewer can re-run.",
+  "author": {
+    "name": "Lawrence Chase",
+    "url": "https://github.com/lchase"
+  },
+  "homepage": "https://github.com/lchase/skills",
+  "repository": "https://github.com/lchase/skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "evidence",
+    "playwright",
+    "proof",
+    "pr",
+    "verify",
+    "trace"
+  ],
+  "skills": "./skills/",
+  "hooks": {}
+}

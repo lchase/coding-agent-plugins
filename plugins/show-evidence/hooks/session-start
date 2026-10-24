@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# SessionStart hook for the show-evidence skill.
+#
+# Claude Code triggers the skill on its own via the SKILL.md `description`.
+# Harnesses without description-based skill triggering (Cursor, Copilot CLI)
+# need this nudge so a proof request actually loads the skill.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+SKILL_PATH="${PLUGIN_ROOT}/skills/show-evidence/SKILL.md"
+
+context="<show-evidence>\nThis project has the show-evidence skill. After you implement a change and before you open or update a pull request, or hand the work back to a human, and whenever someone asks to prove, verify, or show what changed, read ${SKILL_PATH} and follow it.\n</show-evidence>"
+
+# Emit the field the current harness consumes. Claude Code reads the nested
+# hookSpecificOutput; Cursor reads snake_case additional_context; the SDK
+# standard (Copilot CLI and others) reads top-level additionalContext.
+if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+  printf '{\n  "additional_context": "%s"\n}\n' "$context"
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; then
+  printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$context"
+else
+  printf '{\n  "additionalContext": "%s"\n}\n' "$context"
+fi
+
+exit 0

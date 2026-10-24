@@ -18,6 +18,8 @@ jobs:
           node-version: 24
       - name: smart-review manifests
         run: ./plugins/smart-review/scripts/validate-adapters.sh
+      - name: show-evidence manifests
+        run: ./plugins/show-evidence/scripts/validate-adapters.sh
       - name: test-drive redactor
         run: node plugins/test-drive/scripts/redact.test.mjs
       - name: plugin version bumps
