@@ -1,6 +1,6 @@
 {
   "name": "smart-review",
-  "description": "Multi-lens code review of a diff: spec-conformance, correctness, security, performance, design, tests \u2014 merged into one deduplicated, severity-ranked verdict.",
+  "description": "smart-review: multi-lens code review of a diff, merged into one verdict. show-evidence: claim-first, replayable proof of a finished change. See GEMINI.md.",
   "version": "0.5.3",
   "contextFileName": "GEMINI.md"
 }
