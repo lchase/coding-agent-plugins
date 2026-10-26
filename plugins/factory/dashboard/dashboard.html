@@ -77,6 +77,7 @@
   .repo { margin: -2px 0 6px; }
   .title { font-size: 14px; line-height: 20px; margin: 0 0 6px; font-weight: 500; }
   .branch { font-family: var(--mono); font-size: 12px; line-height: 16px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .branch a { color: var(--code); }
   .rounds { margin-top: 12px; display: grid; gap: 4px; }
   .round { display: grid; grid-template-columns: 20px repeat(4, minmax(0, 1fr)); gap: 4px; align-items: center; }
   .round .r { font-family: var(--mono); font-size: 11px; color: var(--faint); }
@@ -222,8 +223,9 @@ function card(j) {
   const live = LIVE.has(j.stage), human = j.stage === "needs-human" || j.stage === "ready";
   const last = roundOf(j);
   const rows = j.history.map(({ n, v }) => v.pr !== undefined ? prRow(n, v.pr) : chips(n, v, j.stage === "review" && n === last));
-  const pr = j.pr ? `<div class="branch">PR #${esc(j.pr.number)}</div>${j.quality.rounds ? `<div class="stats">${prStats(j.quality)}</div>` : ""}` : "";
-  const note = j.stage === "ready" ? `<div class="note">${esc(j.note || "all clear")}<br>${j.pr ? esc(j.pr.url) : ""}</div>`
+  const prNum = j.pr && (/^https:\/\//.test(j.pr.url || "") ? `<a href="${esc(j.pr.url)}" target="_blank" rel="noopener">PR #${esc(j.pr.number)}</a>` : `PR #${esc(j.pr.number)}`);
+  const pr = j.pr ? `<div class="branch">${prNum}</div>${j.quality.rounds ? `<div class="stats">${prStats(j.quality)}</div>` : ""}` : "";
+  const note = j.stage === "ready" ? `<div class="note">${esc(j.note || "all clear")}</div>`
              : j.stage === "pr-open" ? `<div class="note">${j.note ? esc(j.note) + "<br>" : ""}${cmd(`/factory pr-sync ${j.id}`)}</div>`
              : human ? `<div class="note">${j.note ? esc(j.note) + "<br>" : ""}${cmd(`/factory approve ${j.id}`)}</div>`
              : j.note ? `<div class="note">${esc(j.note)}</div>` : "";
@@ -325,6 +327,7 @@ document.addEventListener("click", e => {
     const set = t => tool ? (cp.dataset.tip = t) : (cp.textContent = t);
     set("copied"); setTimeout(() => set(was), 1200); return;
   }
+  if (e.target.closest("a[href]")) return;
   if (e.target.closest("#compact")) { compact = !compact; try { localStorage.setItem("factory.compact", compact ? "on" : "off"); } catch {} renderCompact(); return render(); }
   const rf = e.target.closest("[data-repo]");
   if (rf) { repo = rf.dataset.repo || null; try { repo ? localStorage.setItem("factory.repo", repo) : localStorage.removeItem("factory.repo"); } catch {} return render(); }
