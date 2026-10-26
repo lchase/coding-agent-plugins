@@ -231,6 +231,16 @@ key, or `#issue`):
 
 `/factory next` takes the first unchecked line, ticks it with the job id, and runs it.
 
+## Issues folder
+
+`/factory next <dir>` runs a folder of issue files instead, like the ones Matt Pocock's to-issues skill writes
+(`NN-slug.md` with `**Blocked by:**` and `**Status:**` lines). It picks the lowest-numbered issue that is
+`ready-for-agent` and whose blockers are all `done`, marks it `in-progress (job <id>)` and runs it. When that job's change
+lands (PR merged, or local merge) the issue becomes `done`, which unblocks the issues that wait on it. Issues that ask
+for no code (spikes, research) are skipped and reported; set their status to `done` yourself when finished. With nothing
+ready it lists what each issue is waiting on. Run issues that do not depend on each other in parallel sessions, and
+`/loop /factory watch` to keep their PRs moving.
+
 ## Lessons
 
 `.factory/lessons.md` is how the factory learns from human PR review. After each `pr-sync` round, the orchestrator

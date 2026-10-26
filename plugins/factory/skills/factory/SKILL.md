@@ -1,6 +1,6 @@
 ---
 name: factory
-description: Run a feature or bug through the software factory loop (spec, build, 4 parallel reviews, approve, then a pull request or a local merge) on its own branch. Use for /factory <feature | path.md | JIRA-123 | #issue>, /factory next, /factory approve <job-id>, /factory rework <job-id> <note>, /factory pr-sync <job-id>, /factory watch, /factory setup, /factory serve.
+description: Run a feature or bug through the software factory loop (spec, build, 4 parallel reviews, approve, then a pull request or a local merge) on its own branch. Use for /factory <feature | path.md | JIRA-123 | #issue>, /factory next [issues-dir], /factory approve <job-id>, /factory rework <job-id> <note>, /factory pr-sync <job-id>, /factory watch, /factory setup, /factory serve.
 disable-model-invocation: true
 ---
 
@@ -114,11 +114,34 @@ main checkout.
 | `/factory setup` | Profile the repo into `.factory/repo.md` (see below) |
 | `/factory <input>` | New job from text, a `.md` path, an issue-tracker key/URL, or a GitHub issue; run the loop |
 | `/factory next` | Take the first `- [ ]` line in `.factory/backlog.md`, tick it `- [x] <item> (<job-id>)` with one Edit (if the Edit fails, another session claimed it: take the next line), run the loop |
+| `/factory next <issues-dir>` | Take the first ready issue in a folder of issue files (see Issues folder), claim it, run the loop with its path as the input |
 | `/factory approve <job-id>` | Deliver a `needs-human` job as it is (step 7: opens the PR, or merges locally) |
 | `/factory rework <job-id> <note>` | `N` = highest `round-<k>` folder. Write `round-N+1/review-human.md` (`VERDICT: CHANGES`, blank line, the note verbatim), stage `build`, resume builder with the step 5 message for round `N+1`; reviews then run as round `N+2` |
 | `/factory pr-sync <job-id>` | One pass over the job's open PR (step 8): feedback in, fixes out, ready check |
 | `/factory watch` | One step 8 pass over every job with an open PR (step 9); `/loop /factory watch` keeps it running |
 | `/factory serve [example]` | Start the dashboard in the background and open it in the browser (see Dashboard) |
+
+## Issues folder
+
+`/factory next <issues-dir>` works through a folder of issue files, one per build slice, as written by Matt Pocock's
+to-issues skill: `NN-slug.md`, a `# NN: title` heading, a `**Blocked by:**` line (`None ...`, or `NN: title` entries
+separated by `;`) and a `**Status:**` line. Factory owns only the status line: `ready-for-agent`, then
+`in-progress (job <id>)` when claimed, then `done (job <id>)` when the job's change lands on the main branch.
+
+1. Read every `*.md` in the folder. An issue is **ready** when its status is `ready-for-agent` and every blocker
+   (matched by its `NN-` filename prefix in the same folder) has status `done`. A blocker with no matching file is not
+   done.
+2. Take the lowest-numbered ready issue. If it asks for no code change (a spike, research, a decision to make), do
+   not run it: list it as `needs a person, set **Status:** done when finished` and take the next one.
+3. Create the job (step 1) with the issue's path as the input, then claim the issue: one Edit of `**Status:**
+   ready-for-agent` to `**Status:** in-progress (job <id>)`. If the Edit fails another session claimed it: remove the
+   empty job folder and go back to 2. Run the loop.
+4. Nothing ready: report each issue not yet `done` with what it waits on (blocker numbers, or the job running it), or
+   `all issues done` when every one is. Independent ready issues can run at once, one session each.
+
+**Done.** Whenever a job reaches stage `merged` (local merge in step 7, or a merged PR in step 8.1 and the Step 0b
+sweep), if `feature.md`'s `Source:` is a file whose status line reads `in-progress (job <id>)` for this job, Edit it to
+`done (job <id>)`. That unblocks its dependents for the next `/factory next <issues-dir>`.
 
 ## /factory setup
 
@@ -142,7 +165,8 @@ in step 5. `<wt>` and `<branch>` below are the `worktree` and `branch` fields of
    kebab slug (max 4 words), e.g. `003-rate-limiting`. Claim it with `mkdir .factory/jobs/<id>` (no `-p`); if that fails
    another session took the number, pick the next. Write `feature.md` from the argument, which is one of:
    - **text** describing a feature or a bug: write it verbatim.
-   - **path to a `.md` file** (e.g. a requirements doc): copy its content; title from its first heading.
+   - **path to a `.md` file** (e.g. a requirements doc or an issue file): copy its content; title from its first
+     heading. Write the path absolute in `Source:` so the Done rule (Issues folder) can find it from any session.
    - **issue-tracker key or URL** (format and fetch method in `repo.md` `## Issue tracker`, e.g. Jira via the Atlassian
      MCP `getJiraIssue`): write summary as the title, then description, acceptance criteria and comments as text.
    - **GitHub issue** (`#123` or an issues URL): `gh issue view <n> --json title,body,comments`; same layout.
@@ -222,15 +246,15 @@ in step 5. `<wt>` and `<branch>` below are the `worktree` and `branch` fields of
    orca worktree rm --worktree path:<wt>          # orca: also deletes the branch
    git worktree remove <wt> && git branch -D <branch>   # git fallback
    ```
-   If the merge fails: `git reset --merge`, stage `needs-human`, `note` = why. On success set stage `merged`, report the
-   commit hash. Do not push.
+   If the merge fails: `git reset --merge`, stage `needs-human`, `note` = why. On success set stage `merged`, apply the
+   Done rule (Issues folder), report the commit hash. Do not push.
 
 8. **PR sync** (`/factory pr-sync <id>`, only for a job with `pr` set; run it again, or `/factory watch` for every job
    at once, whenever reviewers have had a chance to respond). One pass, then stop. The factory never merges the PR and never
    approves it.
    1. **State** (also the whole of the Step 0b sweep). `gh pr view <n> --json state,mergedAt,reviewDecision,mergeable,statusCheckRollup,headRefOid`.
       - `MERGED` → remove the worktree and branch (commands in the `local` block above, local branch only), stage
-        `merged`, `note` = `merged via PR`. Stop.
+        `merged`, `note` = `merged via PR`, then the Done rule (Issues folder). Stop.
       - `CLOSED` unmerged → stage `needs-human`, `note` = `PR closed without merge`. Stop.
    2. **Collect feedback.** Fetch, and skip anything already answered:
       - unresolved review threads (GraphQL `pullRequest.reviewThreads`, `isResolved: false`, with each thread's
