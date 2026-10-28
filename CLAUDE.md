@@ -115,7 +115,7 @@ plugins/smart-review/                # PLUGIN 1, multi-harness code review
     SKILL.md                         # routing + workflow + output format
     references/
       lenses/{spec-conformance,correctness,security,performance,design,tests}.md
-      domain/{api,database,frontend-a11y,typescript-node}.md
+      domain/{api,database,frontend-a11y,typescript-node,jvm-java,python-async,messaging-serialization}.md
       checklist-routing.md           # trigger -> domain checklist -> target lens
       finding-schema.md              # the one shape every lens emits
       merge-contract.md              # dedup / agreement / lead filters / severity rollup / nit cap

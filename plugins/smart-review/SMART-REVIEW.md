@@ -50,7 +50,7 @@ Component layout:
 - **The shared core** (`skills/smart-review/`) — harness-neutral. Every manifest points here.
   - **`SKILL.md`** — routing, the min/max workflows, the report format.
   - **`references/lenses/`** — the six review perspectives: spec-conformance, correctness, security, performance, design, tests. Fixed set.
-  - **`references/domain/`** — database, TypeScript/Node, API, frontend/a11y. Injected into the relevant lens when the diff touches that domain (see `references/checklist-routing.md`). Add depth by adding a checklist + a routing row, not a new reviewer.
+  - **`references/domain/`**: database, TypeScript/Node, JVM/Java, Python/async, messaging/serialization, API, frontend/a11y. Injected into the relevant lens when the diff touches that domain (see `references/checklist-routing.md`). Add depth by adding a checklist + a routing row, not a new reviewer.
   - **`references/finding-schema.md`** — the one shape every lens emits, so findings can be merged mechanically.
   - **`references/merge-contract.md`**: dedup, agreement-weighting (lenses, and models when the panel ran), conflict resolution, validation, lead filters, severity rollup, structure-over-nits, nit cap. This is the product.
   - **`references/validation.md`**: static re-check, then a certainty ladder. A P0 hard-blocks only after a minimal script or test (`proof: ran`), or an in-app repro. Otherwise it ships as `unproven` and does not hard-block.

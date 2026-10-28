@@ -1,0 +1,68 @@
+{
+  "must_find": [
+    {
+      "category": "failure-blast-radius",
+      "file": "store.py",
+      "near_line": 40,
+      "min_severity": "P1",
+      "lens": "correctness",
+      "note": "gather without return_exceptions: one failed put kills the drain, await drain re-raises, gap-fill never runs, so the spec's failed-write retry is unreachable (not planted; both old and new runs found and proved it)"
+    },
+    {
+      "category": "guard-at-wrong-layer",
+      "file": "store.py",
+      "near_line": 51,
+      "min_severity": "P2",
+      "lens": "correctness",
+      "note": "released check lives only in _fill_gaps; _write_artifact, the sink both the drain and gap-fill use, has none, so any future path that enqueues a released conversation again overwrites a good artifact with an empty one. Floored at P2 even with no such caller today"
+    },
+    {
+      "category": "unenforced-invariant",
+      "file": "store.py",
+      "near_line": 21,
+      "min_severity": "P2",
+      "lens": "correctness",
+      "note": "id() set relies on the runner returning every conversation it reported; runner.py drops retried attempts, so their ids can be reused by a later object and gap-fill raises for a scenario never written"
+    },
+    {
+      "category": "race-condition",
+      "file": "store.py",
+      "near_line": 40,
+      "min_severity": "P2",
+      "lens": "correctness",
+      "note": "runner reports every retry attempt; two attempts of one scenario can land in one batch and gather writes scenario-i.json twice concurrently, so the failed attempt's transcript can win"
+    },
+    {
+      "category": "failure-blast-radius",
+      "file": "store.py",
+      "near_line": 52,
+      "min_severity": "P2",
+      "lens": "correctness",
+      "note": "one index mismatch raises and fails the whole step, discarding every valid key already written"
+    },
+    {
+      "category": "unbounded-concurrency",
+      "file": "store.py",
+      "near_line": 40,
+      "min_severity": "P2",
+      "lens": "performance",
+      "note": "gather over the whole drained batch keeps every transcript and serialized body resident until the slowest put returns"
+    },
+    {
+      "category": "false-claim",
+      "file": "store.py",
+      "near_line": 40,
+      "min_severity": "P2",
+      "lens": "spec-conformance",
+      "note": "PR claims memory is bounded by in-flight writes; the batch gather makes it bounded by burst size"
+    },
+    {
+      "category": "stale-doc",
+      "file": "store.py",
+      "near_line": 28,
+      "min_severity": "P3",
+      "lens": "design",
+      "note": "docstring says the callback runs via asyncio.to_thread on an inner loop; the code is single-loop, and the release is only safe because of that"
+    }
+  ]
+}

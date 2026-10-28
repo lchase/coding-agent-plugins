@@ -14,6 +14,8 @@ The core move: identify every source of attacker-controlled data (request params
 - **Secrets.** API keys, passwords, tokens, private keys committed to source or logged (`secret-in-code`). If one is present, the finding is P0 *and* the secret must be rotated, not just removed.
 - **SSRF.** User-controlled URLs fetched server-side without allow-listing (`ssrf`) — especially dangerous in cloud metadata range.
 - **Unsafe deserialization.** Untrusted input into a deserializer that can instantiate arbitrary types or run code (`unsafe-deserialization`).
+- **Server-only fields.** A field the server derives (a role, a tenant, a debug or trust flag) must not be settable by whoever sends the payload. Use the context pack's ingress list: every deserializer of that type (websocket, HTTP, queue consumer, test API) either drops the field or overwrites it before anything reads, persists, or logs it. A reset at one handler while another ingress accepts the field is `ingress-gap`. Check the window before the overwrite too: error paths and early exits that copy the message before the server sets the field.
+- **Data from a failed check.** After an ownership, tenant, or account check fails, nothing from the rejected object (its flags, settings, ids) may flow into the response, a stored row, an event, or a log. Stamping a value from another tenant's context onto the error turn is `failed-check-data-use`.
 - **Open redirect**, missing output encoding, missing CSRF protection on state-changing routes, over-permissive CORS, sensitive data in URLs or logs.
 - **Crypto misuse.** Home-rolled crypto, ECB mode, static IVs, weak/absent hashing for passwords (use a slow KDF), `Math.random()` for tokens.
 
