@@ -1,0 +1,9 @@
+{
+  "id": "09-correctness-guard-at-wrong-layer",
+  "title": "Release transcript after write: guard at one caller, id() identity, unbounded gather, stale docstring",
+  "primary_lens": "correctness",
+  "spec": "Free each conversation's transcript as soon as its artifact is written, so worker memory no longer grows with the number of scenarios. A conversation whose write failed must keep its transcript for the gap-fill retry, and an emptied conversation must never overwrite a good artifact.",
+  "pr_description": "Releases the transcript right after a successful put. Gap-fill refuses to rewrite a released conversation, so an emptied conversation can never overwrite a good artifact. Peak memory is now bounded by in-flight writes, not by the scenario count. Safe because the drain and the runner never touch the same conversation at once.",
+  "files": ["store.py"],
+  "context_files": ["runner.py"]
+}

@@ -28,8 +28,47 @@ Every reviewer receives the same filled template:
 1. The intent paragraph.
 2. The diff.
 3. The spec, if there is one.
-4. That reviewer's lens checklist (`references/lenses/<lens>.md`) and any domain
+4. The **claims list** (below).
+5. The **context pack** (below).
+6. That reviewer's lens checklist (`references/lenses/<lens>.md`) and any domain
    checklist the routing table sends to that lens.
+
+### Claims list
+
+Every factual statement the PR description and commit messages make about the change,
+one per line, quoted: "the old 3-arg overload keeps working", "normal payloads are
+byte-identical", "peak memory drops to 1.1 MB", "only one event loop touches this". These
+are claims to verify, not rationale to trust. The spec lens checks each one. Omit the
+item when there is no description.
+
+### Context pack
+
+Most findings that human reviewers post and a diff-only review misses live in code the
+diff never touched: the other producer that builds the same object, the second ingress
+that deserializes the same DTO, the docstring that contradicts the new assumption, the
+caller that reads a value the diff now leaves empty. Build this pack once, before fan-out,
+and give the same pack to every reviewer. For each symbol, type, or field the diff adds,
+changes, or starts relying on:
+
+- **Callers** of each changed function, and what they do with its result or error.
+- **Every other producer** of each changed type: constructors, builders, copy
+  constructors, factories, and places that build it by hand. When the diff adds a field,
+  list each producer and whether it sets that field.
+- **Every ingress**: each place the type is deserialized or received (HTTP, websocket,
+  queue/Kafka consumer, RPC, file, test API), and each sink that persists, logs, or
+  emits it.
+- **Consumers of changed values**: when a value's type or meaning changes (`null` to
+  `false`, populated to emptied), the code that reads it downstream, including logging
+  context and serializers.
+- **Docs and comments** describing the changed functions or the concurrency, ordering,
+  or ownership the diff now depends on.
+- **Siblings**: the sync/async, single/batch, or other-transport twin of a changed path.
+
+Cite each entry as `file:line` with a one-line note. Keep it to the entries that bear on
+the change (usually 10-40 lines of notes), and paste short excerpts only where the line
+itself matters. Use `rg`/`grep` (or a code-graph tool if the repo has one). Reviewers may
+still Read and Grep beyond the pack. A finding about out-of-diff code must cite the
+`file:line` it read, so the merge can validate it.
 
 No personas. The reviewers are the six lenses. When you want a stronger adversarial
 signal, add models. Models differ in blind spots. Assigned personalities mostly add
@@ -75,8 +114,8 @@ Rules:
 
 ## Isolated variant (parallel subagents)
 
-1. **Intent + spec-gate.** Write the intent paragraph. Dispatch the spec-conformance
-   reviewer alone (orchestrator model). If it reports the change implements the wrong
+1. **Intent + spec-gate.** Write the intent paragraph, the claims list, and the context
+   pack. Dispatch the spec-conformance reviewer alone (orchestrator model). If it reports the change implements the wrong
    thing, stop and report that. Skip the gate only if there is no spec.
 2. **Fan out the remaining five lenses.** Each subagent receives only the filled
    template above. It must not receive the author's session history or any other
@@ -94,8 +133,8 @@ Rules:
 
 ## Sequential variant (one context)
 
-1. **Intent + spec-gate** inline. Write the intent paragraph, then check the diff
-   against the spec. If it is the wrong thing, stop and report.
+1. **Intent + spec-gate** inline. Write the intent paragraph, the claims list, and the
+   context pack, then check the diff against the spec and the claims. If it is the wrong thing, stop and report.
 2. **Walk the lenses.** For `panel: off`, walk the six lenses in order. For `panel: on`,
    repeat that walk once per model. For `panel: per-lens`, walk each lens on its zipped
    model. Between lenses, and between models, reset framing: re-read the checklist

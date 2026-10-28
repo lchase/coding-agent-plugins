@@ -10,6 +10,7 @@
 - **Blocking the event loop / thread.** Synchronous I/O, `readFileSync`, CPU-heavy work on the request path in a single-threaded runtime (`blocking-io`).
 - **Allocation on hot paths.** Rebuilding a large object/array/regex every call instead of once; unbounded caches or arrays that grow forever (a slow leak); large payloads held in memory (`hot-path-allocation`).
 - **Missing caching.** An expensive, repeated, cacheable computation or fetch with no memoization or cache layer (`missing-cache`) — but only where the access pattern actually repeats.
+- **Unbounded fan-out.** `gather`/`Promise.all`/a thread pool over a whole batch or queue drain with no semaphore: everything in flight stays resident (payloads, serialized bytes, connections) until the slowest item finishes, so memory and connection count scale with burst size, not with a concurrency limit (`unbounded-concurrency`). Check this especially when the PR claims a memory or latency improvement; a slow downstream undoes it.
 - **Chattiness.** Sequential awaits that could run in parallel (`Promise.all`); many round-trips where one batched call would do.
 
 ## Negative space

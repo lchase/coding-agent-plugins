@@ -19,6 +19,10 @@ Respect documented repo conventions first: where a project's own standards endor
 - **Leaky abstraction / feature envy** — a module reaching deep into another's internals (`feature-envy`); an abstraction that exposes what it should hide (`leaky-abstraction`).
 - **God object / long function / large file** — one thing that knows or does too much (`god-object`). A small diff can still bolt another branch onto an already-overgrown file — flag the trajectory.
 - Primitive obsession, long parameter lists, temporal coupling (must call A before B with no enforcement).
+- **Hidden side effects**: a function whose name reads as a query or a builder (`getX`, `buildContext`) that also mutates its input or shared state (`hidden-side-effect`).
+- **Two sources of truth**: the same value derived in two places from inputs that can differ (stamped at turn start from one context, re-derived later from a newer one), so one unit of work ends up tagged both ways (`dual-source-of-truth`). Derive once, read after.
+- **Stale docs**: a docstring or comment that now contradicts what the code does or relies on (`stale-doc`). The next reader trusts the doc.
+- **Signature footguns**: a public signature replaced instead of overloaded (source break for other callers); a trailing positional boolean; an overload that silently defaults a value callers should have to decide (`breaking-signature`).
 
 ## Negative space
 
