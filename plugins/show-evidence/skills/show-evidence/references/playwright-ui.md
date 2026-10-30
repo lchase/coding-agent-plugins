@@ -12,10 +12,11 @@ PROVEN means the assertion passed and that screenshot (or a frame you name) show
 
 ## Fit the repo
 
-If the repo already has Playwright, add the spec next to those tests and run it with the repo's config. Force a trace for this run even when CI leaves tracing off:
+If the repo already has Playwright, add the spec next to those tests and run it with the repo's config. Force a trace for this run even when CI leaves tracing off. `--trace` is a CLI flag, `--video` is not: video
+comes from `use.video` in the config, so the repo's config needs `video: 'on'` (or use the `evidence/` config below).
 
 ```bash
-npx playwright test e2e/order-row.spec.ts --trace on --video on
+npx playwright test e2e/order-row.spec.ts --trace on
 ```
 
 Copy `trace.zip` and the video into the gitignored output dir if `test-results/` is noisy or not ignored. Point the summary at the files you want a human to open.
@@ -72,7 +73,7 @@ Base URL, the account or empty database you started from, viewport if the claim 
 One command, from the repo root, plus how to open the trace:
 
 ```bash
-npx playwright test evidence/order-row.spec.ts --trace on --video on
+npx playwright test -c evidence/playwright.config.ts evidence/order-row.spec.ts
 npx playwright show-trace evidence/out/test-results/<test>/trace.zip
 ```
 

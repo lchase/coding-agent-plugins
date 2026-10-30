@@ -54,7 +54,7 @@ and a dashboard shows jobs moving across the stages.
 ## Install
 
 ```
-/plugin marketplace add lchase/skills      # once
+/plugin marketplace add lchase/coding-agent-plugins      # once
 /plugin install smart-review@lchase
 /plugin install factory@lchase
 ```
