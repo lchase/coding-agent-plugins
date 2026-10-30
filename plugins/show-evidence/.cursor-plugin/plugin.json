@@ -2,12 +2,12 @@
   "name": "show-evidence",
   "displayName": "Show Evidence",
   "description": "Prove a finished change with replayable, claim-first evidence: falsifiable claims, one artifact per claim, and a PROVEN / FAILED / NOT-EVIDENCED summary a reviewer can re-run.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": {
     "name": "Lawrence Chase"
   },
-  "homepage": "https://github.com/lchase/skills",
-  "repository": "https://github.com/lchase/skills",
+  "homepage": "https://github.com/lchase/coding-agent-plugins",
+  "repository": "https://github.com/lchase/coding-agent-plugins",
   "license": "MIT",
   "keywords": [
     "show-evidence",

@@ -21,7 +21,7 @@ Keep these. They are outside `redact.mjs`.
 - Emails, phone numbers, and customer account ids. Put fake ones in the script. recording-mode can mask some of these on a Claude Code screen. It does not edit the files you attach.
 - PEM blocks (`-----BEGIN`) and AWS access key ids (`AKIA`), unless they already sit under a sensitive key. Search the text artifact for both before upload.
 - Playwright `trace.zip`, video, and screenshots. The zip stores headers as plain files inside the archive. Prefer a fixture token so the zip is safe as-is. If a real token may be inside, do not upload the zip or the video. Do not hand-edit the zip and still call it the recording. Read the png before attaching it.
-- vhs output. The gif is a picture of the terminal. Keep the token off camera (`Hide` in the tape, env set before recording) and look at a frame. If that recording will capture an agent session, turn recording-mode on first (`vhs.md`).
+- vhs output. The gif is a picture of the terminal. Keep the token off camera (set it with `Env` in the tape, not typed commands, since `Hide` does not hide them) and look at a frame. If that recording will capture an agent session, turn recording-mode on first (`vhs.md`).
 
 ## After a bad capture
 

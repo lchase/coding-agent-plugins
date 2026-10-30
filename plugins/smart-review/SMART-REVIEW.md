@@ -12,7 +12,7 @@ workflow with `max` as a sequential ensemble.
 **Claude Code:**
 
 ```
-/plugin marketplace add lchase/skills
+/plugin marketplace add lchase/coding-agent-plugins
 /plugin install smart-review@lchase
 ```
 

@@ -1,13 +1,13 @@
 {
   "name": "smart-review",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Multi-lens code review of a diff: spec-conformance, correctness, security, performance, design, tests \u2014 merged into one deduplicated, severity-ranked verdict. Sequential ensemble on Codex (no native subagents).",
   "author": {
     "name": "Lawrence Chase",
     "url": "https://github.com/lchase"
   },
-  "homepage": "https://github.com/lchase/skills",
-  "repository": "https://github.com/lchase/skills",
+  "homepage": "https://github.com/lchase/coding-agent-plugins",
+  "repository": "https://github.com/lchase/coding-agent-plugins",
   "license": "MIT",
   "keywords": [
     "skills",

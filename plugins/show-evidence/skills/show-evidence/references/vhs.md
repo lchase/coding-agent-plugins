@@ -10,7 +10,7 @@ When the recording will capture an agent session (the agent's transcript or tool
 
 ## Tape
 
-`evidence/orders.tape`. vhs has no comment syntax, so the note lives here: `Hide` still runs the exports, and it keeps the fixture token off the gif.
+`evidence/orders.tape`. vhs has no comment syntax, so the note lives here: `Env` sets the variables for the recorded shell without typing them, which keeps the fixture token off the gif. `Hide` does not: the typed `export` lines still appeared in a rendered gif (vhs 0.12.1).
 
 ```tape
 Output evidence/out/orders.gif
@@ -22,10 +22,8 @@ Set Height 700
 Set Padding 16
 Set TypingSpeed 40ms
 
-Hide
-Type "export API_BASE_URL=http://127.0.0.1:3000" Enter
-Type "export API_TOKEN=test-token" Enter
-Show
+Env API_BASE_URL "http://127.0.0.1:3000"
+Env API_TOKEN "test-token"
 
 Type "bash evidence/orders.sh" Enter
 Sleep 2s
