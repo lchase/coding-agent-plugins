@@ -53,6 +53,8 @@ export interface CaseMeta {
   primary_lens: Lens; // the lens this case chiefly exercises
   spec?: string; // the intent/spec handed to the reviewer
   files: string[]; // files under review
+  pr_description?: string; // the PR body; its claims become the claims list
+  context_files?: string[]; // unchanged repo files the reviewer must discover through the context pack
 }
 
 /** Severity rank: higher = more severe. */

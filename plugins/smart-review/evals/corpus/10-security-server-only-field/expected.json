@@ -1,0 +1,13 @@
+{
+  "must_find": [
+    { "category": "ingress-gap", "file": "SocketHandler.java", "near_line": 17, "min_severity": "P1", "lens": "security", "note": "reset only in SocketHandler; QueueConsumer deserializes the same DTO and passes a producer-supplied debug_active=true to the orchestrator" },
+    { "category": "ingress-gap", "file": "Orchestrator.java", "near_line": 17, "min_severity": "P2", "lens": "security", "note": "unknown-session path runs before any stamp, so respondError copies and persists the forged flag and puts it in the MDC" },
+    { "category": "failed-check-data-use", "file": "Orchestrator.java", "near_line": 21, "min_severity": "P1", "lens": "security", "note": "account mismatch branch stamps the other tenant's debug state onto this message, its stored error row, and logs" },
+    { "category": "false-claim", "file": "Converter.java", "near_line": 6, "min_severity": "P1", "lens": "spec-conformance", "note": "PR says the three-argument toRow keeps working; it was replaced, and QueueConsumer and TimeoutHandler still call it" },
+    { "category": "breaking-signature", "file": "Converter.java", "near_line": 6, "min_severity": "P1", "lens": "design", "note": "public signature replaced instead of overloaded; unchanged callers no longer compile" },
+    { "category": "incomplete-propagation", "file": "TimeoutHandler.java", "near_line": 16, "min_severity": "P2", "lens": "correctness", "note": "synthetic timeout turn never derives the flag from the session; debug sessions' timeout rows are stored as production (or carry the previous turn's stale value)" },
+    { "category": "hidden-side-effect", "file": "Orchestrator.java", "near_line": 33, "min_severity": "P2", "lens": "design", "note": "buildExecutionContext mutates its input message" },
+    { "category": "dual-source-of-truth", "file": "Orchestrator.java", "near_line": 33, "min_severity": "P2", "lens": "design", "note": "flag stamped from ctx at line 25, then re-derived from a reloaded context; one turn can be tagged both ways" },
+    { "category": "sentinel-ambiguity", "file": "Orchestrator.java", "near_line": 40, "min_severity": "P2", "lens": "correctness", "note": "LogContext treats null as unknown and omits the tag; passing a primitive asserts false for a message that was never stamped" }
+  ]
+}

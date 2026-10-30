@@ -1,0 +1,9 @@
+{
+  "id": "10-security-server-only-field",
+  "title": "Server-derived debug flag on a shared DTO: one-handler reset, other-tenant stamp, missed producer, removed overload",
+  "primary_lens": "security",
+  "spec": "Mark every stored transcript row of a debug session with debug_active = true. The flag is derived by the server from the session's debug options; a client must never be able to set it. Normal traffic must be unchanged.",
+  "pr_description": "Adds debug_active to MessageDto, omitted from JSON while false, so normal payloads are byte-identical. The orchestrator stamps it once per turn from the session context, including the account-mismatch error path. SocketHandler resets any client-supplied value, so the flag is server-derived only. Converter.toRow gains a debugActive argument; the old three-argument toRow keeps working and defaults to false. The error fallback now passes the message's flag to LogContext instead of null.",
+  "files": ["MessageDto.java", "SocketHandler.java", "Orchestrator.java", "Converter.java"],
+  "context_files": ["QueueConsumer.java", "TimeoutHandler.java", "LogContext.java"]
+}

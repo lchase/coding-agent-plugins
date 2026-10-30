@@ -8,7 +8,10 @@ Consult this table in Step 1 once you know what the diff touches. For each trigg
 |---|---|---|
 | SQL, ORM queries, migrations, schema changes, files under `migrations/`, `*.sql`, repository/DAO layers | `references/domain/database.md` | correctness, performance |
 | TypeScript / Node source (`*.ts`, `*.tsx`, `*.mjs`), async code, package.json deps | `references/domain/typescript-node.md` | correctness, design |
-| Public API surface: route handlers, controllers, RPC/GraphQL schemas, exported package entry points, versioned endpoints | `references/domain/api.md` | design, spec-conformance |
+| Java / Kotlin source (`*.java`, `*.kt`), Maven/Gradle files | `references/domain/jvm-java.md` | correctness, design |
+| Python source (`*.py`), especially `asyncio`, worker/activity code, long-lived processes | `references/domain/python-async.md` | correctness, performance |
+| A DTO, event, or message that crosses a process boundary: queue producers/consumers, websocket/RPC payloads, event schemas, golden JSON fixtures, serializer annotations (`@Json*`, pydantic, serde) | `references/domain/messaging-serialization.md` | security, correctness, spec-conformance |
+| Public API surface: route handlers, controllers, RPC/GraphQL schemas, exported package entry points, versioned endpoints, and any changed `public`/exported signature in a module other modules or repos import | `references/domain/api.md` | design, spec-conformance |
 | Frontend components, JSX/TSX views, forms, anything user-facing | `references/domain/frontend-a11y.md` | design |
 
 ## How injection works

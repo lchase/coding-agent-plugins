@@ -53,6 +53,12 @@ Reviews run against a **diff**, never the whole tree, and are **read-only**. Do 
 
 The spec is what the change is *supposed* to do. Look, in order: an issue/PR reference in the commit messages; a path the user passed; a PRD/spec file under `docs/`, `specs/`, or similar matching the branch/feature. If you find nothing, ask. If the user says there is no spec, the spec-conformance lens reports "no spec available" and is skipped — do not invent requirements.
 
+## Step 3: Claims and context (all modes)
+
+A diff-only review misses what lives outside the diff, and a PR description's own claims go unchecked unless someone lists them. Before any lens runs, write the **claims list** (every factual statement the PR description and commit messages make about the change) and build the **context pack** (callers, every other producer and ingress of each changed type, downstream consumers of changed values, docs the change now relies on, sibling paths). Both are defined in `references/ensemble.md` under "Shared template". In `min` you use them yourself; in `max` every reviewer gets the same copy.
+
+**Re-reviews.** When the author pushes fixes for earlier findings, review the fix delta as its own diff with a fresh context pack. Fixes add new overloads, defaults, and branches, and those carry new defects.
+
 ## The lenses
 
 Six lenses, each defined by a checklist in `references/lenses/`. Read a lens file before applying it; do not review from memory of these categories.
@@ -78,7 +84,7 @@ Severity is **P0–P3**, defined in `references/severity.md`, with the rule that
 
 One agent, one context, no fan-out.
 
-1. Scope the diff (Step 1) and find the spec (Step 2).
+1. Scope the diff (Step 1), find the spec (Step 2), and write the claims list and context pack (Step 3).
 2. From `references/checklist-routing.md`, note which domain checklists the diff triggers. State it in one line, e.g. "Routing the database checklist into correctness + performance — diff touches migrations/." Say "no domain checklists triggered" if none matched; don't skip the line.
 3. Walk all six lenses in sequence in this one context. For each, read its checklist file, plus any domain checklist routed to it, and record findings in the canonical schema. Give a quick spec-conformance check inline — full gating is a `max` feature.
 4. Apply the merge rules from `references/merge-contract.md` yourself (dedup, agreement-weight, lead filters, severity rollup, structural-over-nits ordering, nit cap), including the validation pass (`references/validation.md`: static checks plus the certainty ladder on P0/P1) before findings ship, and emit the report in the format at the bottom of this file.
@@ -89,7 +95,7 @@ One agent, one context, no fan-out.
 
 The orchestrated ensemble. **The agent running this skill is the orchestrator**: it fans the lenses out, then collects; reviewers never spawn their own. That agent can be the top-level session or a subagent, since Claude Code allows nested subagents (three layers deep by default since 2.1.219; `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=1` turns nesting off). Where it cannot dispatch, the capability check in `references/ensemble.md` picks the sequential variant.
 
-1. Scope the diff and find the spec (Steps 1-2). Note triggered domain checklists and state them in one line with the reason, same as `min`. This is what goes into each subagent's prompt, so get it right before fanning out. Write the one-paragraph intent the ensemble template requires (`references/ensemble.md`) before fanning out. If you cannot write it, ask.
+1. Scope the diff, find the spec, and write the claims list and context pack (Steps 1-3). Note triggered domain checklists and state them in one line with the reason, same as `min`. This is what goes into each subagent's prompt, so get it right before fanning out. Write the one-paragraph intent the ensemble template requires (`references/ensemble.md`) before fanning out. If you cannot write it, ask.
 2. Run the ensemble per `references/ensemble.md`. That file has the capability check (isolated parallel subagents if this harness supports them, otherwise a sequential lens walk) and the model panel. Claude Code dispatches the bundled `agents/*-reviewer.md` and passes `model` at dispatch time when the panel is on. Default is single-model max (`panel: off`). Both paths keep the spec-gate and all six lenses. No personas: extra signal is model diversity, configured as `panel: on` (same template to each model) or `panel: per-lens`.
 3. **Merge.** Apply `references/merge-contract.md`: dedup, agreement-weighting (≥2 lenses, or ≥2 models when the panel ran, gives a confidence + rank boost), conflict resolution, **validation** (`references/validation.md`: static checks, then the certainty ladder; a P0 hard-blocks only at `proof: ran` or `proof: reproduced`, and `unproven` stays visible without blocking unless the user overrides), lead filters (nitpick gravity, hypothetical, preference, Act On cap ~5), severity rollup, structure-over-nits ordering, nit cap, one verdict. On Claude Code this can go to the `merge-synthesizer` subagent (the only stage that sees everything); elsewhere do it inline.
 
