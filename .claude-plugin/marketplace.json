@@ -36,6 +36,21 @@
       ]
     },
     {
+      "name": "show-evidence",
+      "source": "./plugins/show-evidence",
+      "description": "Prove a finished change with replayable, claim-first evidence: 1 to 5 falsifiable claims, one artifact per claim (Playwright video and trace for UI, a Playwright request trace or a vhs tape or a Hurl transcript for an API, a script run for a CLI or library), and a summary of PROVEN, FAILED, or NOT-EVIDENCED. Provides the show-evidence skill.",
+      "category": "development",
+      "keywords": [
+        "show-evidence",
+        "evidence",
+        "playwright",
+        "proof",
+        "pr",
+        "verify",
+        "trace"
+      ]
+    },
+    {
       "name": "test-drive",
       "source": "./plugins/test-drive",
       "description": "Record a before/after test drive of a UI or backend API change: /test-drive:baseline records the app before you edit, /test-drive:compare replays the same scripted scenario after the change and gives a deterministic pass/warn/fail verdict, with a side-by-side video for UI or a request, response, and server-log report for API.",

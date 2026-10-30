@@ -1,13 +1,15 @@
 # lchase
 
-Lawrence Chase's Claude Code marketplace: code review, diagram, test-evidence and software
-factory skills, plus a set of small Claude Code mods that add band lines and panes to the terminal UI.
+Lawrence Chase's Claude Code marketplace: code review, claim-first evidence, diagrams,
+test drives, and a software factory, plus a set of small Claude Code mods that add band
+lines and panes to the terminal UI.
 
 ```
 /plugin marketplace add lchase/coding-agent-plugins
 /plugin install smart-review@lchase
 /plugin install tldraw@lchase
 /plugin install test-drive@lchase
+/plugin install show-evidence@lchase
 /plugin install cache-clock@lchase
 /plugin install usage-gauge@lchase
 /plugin install auto-handoff@lchase
@@ -76,6 +78,7 @@ The tldraw skill's command also changed: `/tldraw:tldraw` → **`/tldraw:diagram
 | [**smart-review**](plugins/smart-review/) | Ensemble code review: six specialized lenses over a diff, merged into one deduplicated, severity-ranked verdict | `/smart-review:{review,min,max,add-pr-review,review-pr-comments}` + auto-trigger | Claude Code, Cursor, Codex, Gemini CLI, any AGENTS.md agent |
 | [**tldraw**](plugins/tldraw/) | Natural-language description → editable tldraw document (`.tldr`) + rendered PNG/SVG | `/tldraw:diagram` + auto-trigger | Claude Code only (needs Node + `npx`) |
 | [**test-drive**](plugins/test-drive/) | Before/after evidence of a UI or API change: record the app before you edit, replay the same scripted scenario after, with a deterministic verdict | `/test-drive:{baseline,compare}` + auto-trigger | Claude Code only (needs Node; UI also needs Playwright and ffmpeg) |
+| [**show-evidence**](plugins/show-evidence/) | Claim-first proof of a finished change: falsifiable claims, one replayable artifact each, PROVEN / FAILED / NOT-EVIDENCED | `show-evidence` skill + auto-trigger | Claude Code, Cursor, Codex, Gemini CLI, any AGENTS.md agent |
 | [**cache-clock**](plugins/cache-clock/) | Mod: band line showing whether the prompt cache is warm. TTL, expiry, hit ratio, and re-cache size come from Claude Code when the status-line bridge is installed; otherwise the countdown is a marked estimate | Compact button (warm only), `/cache-clock` | Claude Code only |
 | [**usage-gauge**](plugins/usage-gauge/) | Mod: band line with plan usage windows (5-hour, weekly, spend limit), reset times, pace warning, session cost on API billing, threshold toasts | `/usage-gauge` (detail pane) | Claude Code only |
 | [**auto-handoff**](plugins/auto-handoff/) | Mod: band line showing how full the chat is; saves a `HANDOFF.md` at a threshold (auto or on request), then clear and continue or resume in a new session | `/auto-handoff` | Claude Code only |
@@ -176,6 +179,55 @@ Claude Code only. UI scenarios need `ffmpeg` and Playwright in the repo under te
 scenarios need only Node 18+. Only the working tree is ever run, so there is no second checkout to boot.
 Details: [`baseline`](plugins/test-drive/skills/baseline/SKILL.md) and
 [`compare`](plugins/test-drive/skills/compare/SKILL.md).
+
+---
+
+## show-evidence
+
+A finished change leaves proof a reviewer can check, tied to a specific claim. After a change, and before the PR body is
+finished or the work is handed back, the agent writes 1 to 5 falsifiable claims from the
+task, the spec, and the diff. Each claim gets one replayable artifact. Each claim ends
+**PROVEN**, **FAILED**, or **NOT-EVIDENCED**, with a reason. A recording that does not
+name a claim is not evidence.
+
+The surface picks the tool:
+
+| Surface | Evidence |
+|---|---|
+| UI | Playwright video, trace, and a screenshot at the moment the claim is true |
+| HTTP API | test-drive `record-api.mjs` transcript when that plugin is installed (request, response, server log, no browser). Otherwise a Playwright `request` trace |
+| HTTP API, as text, without test-drive | Hurl file with assertions, or a `.http` file plus a captured response |
+| CLI, or a terminal picture | vhs tape of a script that exits non-zero when the claim is false |
+| Library or other | A script that imports the same module the app ships, and the captured transcript |
+
+A throwaway web page in front of a backend, built only so there is a browser to film, is
+rejected. It is a second app to maintain, it drifts from the handler the change shipped,
+and it hides the payload. Record the request and the response.
+
+The script (Playwright spec, tape, Hurl file, or program) is committed or attached so a
+reviewer can re-run it. Video, traces, and transcripts stay out of git (an ignored
+`evidence/out/`, or whatever the repo already ignores) and are uploaded on the PR or left
+at the path in the table. The PR body gets an `## Evidence` table: claim, status, why,
+artifact, re-run command, plus seed data and env.
+
+smart-review's validation ladder (`references/validation.md` in that plugin) is said-so,
+file:line, walked, ran, reproduced. show-evidence produces the last two rungs: `ran` (the
+script imports the shipped module) and `reproduced` (the running app). It does not assign
+P0-P3 or merge review findings. test-drive is the before/after comparison; this skill
+does not need a baseline.
+
+```
+/plugin install show-evidence@lchase
+```
+
+Same workflow on every harness. Claude Code loads the skill from its description. Cursor
+uses `plugins/show-evidence/.cursor-plugin/` (session-start hook included). Codex uses
+`plugins/show-evidence/.codex-plugin/`. Gemini CLI installs this repo as one extension, so
+`GEMINI.md` points at the skill; there is no second Gemini manifest, and
+`gemini-extension.json` stays versioned with smart-review. Any AGENTS.md agent follows
+the root [`AGENTS.md`](AGENTS.md) pointer.
+
+Details: [`plugins/show-evidence/skills/show-evidence/SKILL.md`](plugins/show-evidence/skills/show-evidence/SKILL.md).
 
 ---
 
@@ -299,9 +351,9 @@ check and does not spend API money.
 ## Repo layout
 
 ```
-.claude-plugin/marketplace.json   # the "lchase" marketplace: 9 plugin entries
-AGENTS.md                         # repo-level agent pointer (→ smart-review)
-gemini-extension.json + GEMINI.md # Gemini CLI installs the repo as an extension (→ smart-review)
+.claude-plugin/marketplace.json   # the "lchase" marketplace: 10 plugin entries
+AGENTS.md                         # repo-level agent pointer (smart-review, show-evidence)
+gemini-extension.json + GEMINI.md # Gemini CLI installs the repo as an extension (smart-review, show-evidence)
 
 plugins/smart-review/             # plugin 1, multi-harness code review
   .claude-plugin/plugin.json
@@ -322,13 +374,20 @@ plugins/test-drive/               # plugin 3, Claude Code only
   scripts/{lib.mjs,record.mjs,record-api.mjs,redact.mjs,verdict.mjs,compose.sh,report.mjs}   # shared by both skills
   references/                     # UI and API scenario schemas + examples
 
-plugins/factory/                  # plugin 4, Claude Code only
+plugins/show-evidence/            # plugin 4, multi-harness claim-first evidence
+  .claude-plugin/plugin.json
+  .cursor-plugin/ .codex-plugin/  # thin per-harness manifests
+  skills/show-evidence/           # SKILL.md + references/ (Playwright, vhs, Hurl, redaction)
+  hooks/                          # session-start nudge where description-triggering is absent
+  scripts/                        # validate-adapters.sh, bump-version.sh
+
+plugins/factory/                  # plugin 5, Claude Code only
   .claude-plugin/plugin.json
   skills/factory/SKILL.md         # the orchestrator loop, commands, setup, job.json and repo.md schemas
   agents/                         # spec-writer, builder, review-{security,ux,ui,code}, approver, repo-profiler
   dashboard/                      # dashboard.html + serve.ts (Bun) + example/ dummy jobs
 
-plugins/{cache-clock,usage-gauge,auto-handoff,agent-watch,recording-mode}/   # plugins 5-9, Claude Code mods
+plugins/{cache-clock,usage-gauge,auto-handoff,agent-watch,recording-mode}/   # plugins 6-10, Claude Code mods
   .claude-plugin/plugin.json      # each with its own version
   hooks/                          # register.tsx (the mod) + hooks.json, tests where present
   types/                          # mod API typings
@@ -341,6 +400,7 @@ benchmarks/token-savings/         # paired Claude Code cost benchmark (not a plu
 ```
 claude plugin validate .                                # marketplace + all plugins
 ./plugins/smart-review/scripts/validate-adapters.sh      # smart-review's per-harness manifests
+./plugins/show-evidence/scripts/validate-adapters.sh     # show-evidence's per-harness manifests
 ./benchmarks/token-savings/check.sh                      # benchmark lint and graders; no API spend
 claude plugin test plugins/cache-clock                   # mod tests, including the native prompt_cache path
 node --test plugins/cache-clock/statusline/bridge.test.mjs
@@ -351,6 +411,9 @@ it on every user-facing change and push to `main`.
 
 - smart-review: version is pinned across all its manifests; bump them together with
   `./plugins/smart-review/scripts/bump-version.sh <version>`.
+- show-evidence: version is pinned across its Claude, Cursor, and Codex manifests; bump
+  them together with `./plugins/show-evidence/scripts/bump-version.sh <version>`. That
+  script does not touch `gemini-extension.json` (smart-review's version).
 - tldraw, test-drive, factory, and each mod: version independently; edit that plugin's
   `.claude-plugin/plugin.json`.
 

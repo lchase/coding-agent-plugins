@@ -33,7 +33,19 @@ package of independently-installable plugins:
    for images), and `references/tldr-format.md`. It carries its own version in
    `plugins/tldraw/.claude-plugin/plugin.json`, independent of smart-review.
 
-3. **test-drive** (`plugins/test-drive/`) is Claude Code only. Two skills form one process:
+3. **show-evidence** (`plugins/show-evidence/`) is multi-harness, same packaging shape as
+   smart-review: one skill under `skills/show-evidence/`, thin Claude, Cursor, and Codex
+   manifests, and a session-start hook for harnesses that do not trigger on the skill
+   description. Gemini stays root-scoped, so `GEMINI.md` points at the skill and
+   `gemini-extension.json` keeps smart-review's version. The skill writes 1 to 5
+   falsifiable claims, then records one replayable artifact per claim (Playwright video
+   and trace for UI, test-drive's `record-api.mjs` for HTTP when that plugin is installed,
+   otherwise Playwright `request` or Hurl, vhs for a terminal, a script run for a CLI
+   or library) and a PROVEN / FAILED / NOT-EVIDENCED table. Per-surface notes live in
+   `references/`. Own version, bumped with `plugins/show-evidence/scripts/bump-version.sh`
+   (those three manifests only).
+
+4. **test-drive** (`plugins/test-drive/`) is Claude Code only. Two skills form one process:
    `/test-drive:baseline` records the UI as it stands BEFORE the change is made, and
    `/test-drive:compare` replays the identical scenario after it and composes a before/after
    video plus a deterministic verdict. The "before" is never rebuilt from the merge-base, so
@@ -49,7 +61,7 @@ package of independently-installable plugins:
    `plugins/test-drive/.claude-plugin/plugin.json`. Both drivers have only been smoke-tested
    against toy servers, so test changes with a real dev server.
 
-4. **factory** (`plugins/factory/`) is Claude Code only. One skill (`/factory`) orchestrates
+5. **factory** (`plugins/factory/`) is Claude Code only. One skill (`/factory`) orchestrates
    eight subagents under `plugins/factory/agents/` through spec, build, four parallel reviews,
    approve, merge. The skill and agents carry nothing repo-specific: every agent reads
    `.factory/repo.md` in the target repo, which `/factory setup` (the `repo-profiler` agent)
@@ -58,13 +70,14 @@ package of independently-installable plugins:
    `skills/factory/SKILL.md`, a stage in its agent file, and keep `repo.md`'s section names
    stable because agents look them up by heading. Own version in
    `plugins/factory/.claude-plugin/plugin.json`. Usage guide: `plugins/factory/README.md`.
-5. **token-savings** (`benchmarks/token-savings/`) is not a plugin. It is a community-runnable
+6. **token-savings** (`benchmarks/token-savings/`) is not a plugin. It is a community-runnable
    benchmark of Claude Code token and cost claims against pallets/click 8.5.0. Click is
    fetched at a pinned commit, not vendored. Offline checks are `./benchmarks/token-savings/check.sh`.
    A paid `claude -p` run is never part of those checks.
 
 There is no application build. smart-review is markdown plus a small TypeScript eval
-harness; tldraw is markdown plus one Node script. **Most of this file is about smart-review.**
+harness; tldraw is markdown plus one Node script; show-evidence is markdown.
+**Most of this file is about smart-review.**
 
 ## Commands
 
@@ -72,8 +85,9 @@ Validate before pushing. `.github/workflows/pr-checks.yml` runs the adapter, red
 version, and token-savings checks on pull requests:
 
 ```bash
-claude plugin validate .                                 # marketplace + both plugins
+claude plugin validate .                                 # marketplace + plugins
 ./plugins/smart-review/scripts/validate-adapters.sh       # smart-review manifests: JSON, version match, resolvable paths, agent-lens sync
+./plugins/show-evidence/scripts/validate-adapters.sh      # show-evidence manifests: JSON, version match, marketplace entry
 node plugins/test-drive/scripts/redact.test.mjs           # test-drive redactor regression check
 ./benchmarks/token-savings/check.sh                       # shellcheck, grader, synthetic summary; no API spend
 ```
@@ -85,7 +99,11 @@ Bump smart-review's version across all its manifests at once (does not touch tld
 ```
 
 The tldraw plugin versions independently. Edit `plugins/tldraw/.claude-plugin/plugin.json`
-by hand.
+by hand. show-evidence versions independently too, across its three harness manifests:
+
+```bash
+./plugins/show-evidence/scripts/bump-version.sh 0.1.0
+```
 
 Eval harness (`plugins/smart-review/evals/`, Node 18+, dev-only, excluded from the packaged plugin):
 
@@ -221,7 +239,10 @@ index keys, `geo` enum, were hard-won, so keep them). Test a tldraw change by ru
 - Adding harness support means a new manifest pointing at `./skills/` plus (if the harness
   lacks description-triggering) a hooks wrapper. Never fork skill content.
 - Bump the version with `scripts/bump-version.sh` so all smart-review manifests stay in
-  lockstep (it does not touch the tldraw plugin).
+  lockstep (it does not touch the tldraw or show-evidence plugins). show-evidence has its
+  own `plugins/show-evidence/scripts/bump-version.sh` for its Claude, Cursor, and Codex
+  manifests. That script does not touch `gemini-extension.json`, which stays on
+  smart-review's version.
 - Eval corpus cases (`evals/corpus/<n>-<lens>-<defect>/`): the `category` in
   `expected.json` must match the vocabulary fixed by `finding-schema.md`, since scoring
   matches on it exactly.
