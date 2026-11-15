@@ -62,6 +62,7 @@ changes, or starts relying on:
   context and serializers.
 - **Docs and comments** describing the changed functions or the concurrency, ordering,
   or ownership the diff now depends on.
+- **Repo rules**: the target repo's own written rules (`CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING`, lint and migration conventions) and any ignore or config file a new generated path implies (`.gitignore`, `.dockerignore`). Reviewers cite a rule when a diff breaks one, and check that a newly written or copied path is ignored where it should be.
 - **Siblings**: the sync/async, single/batch, or other-transport twin of a changed path.
 
 Cite each entry as `file:line` with a one-line note. Keep it to the entries that bear on
