@@ -199,6 +199,7 @@ The surface picks the tool:
 | HTTP API, as text, without test-drive | Hurl file with assertions, or a `.http` file plus a captured response |
 | CLI, or a terminal picture | vhs tape of a script that exits non-zero when the claim is false |
 | Library or other | A script that imports the same module the app ships, and the captured transcript |
+| UI, narrated (opt-in, on request) | Short MP4 with a local synthetic voice and labels, from PROVEN UI claims only, via [Argo](https://github.com/shreyaskarnik/argo) and Kokoro (optional ~410 MB install). Real app with a saved Playwright login, else a Storybook story |
 
 A throwaway web page in front of a backend, built only so there is a browser to film, is
 rejected. It is a second app to maintain, it drifts from the handler the change shipped,

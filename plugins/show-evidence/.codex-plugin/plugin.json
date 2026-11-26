@@ -1,6 +1,6 @@
 {
   "name": "show-evidence",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Prove a finished change with replayable, claim-first evidence: falsifiable claims, one artifact per claim, and a PROVEN / FAILED / NOT-EVIDENCED summary a reviewer can re-run.",
   "author": {
     "name": "Lawrence Chase",

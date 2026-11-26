@@ -73,6 +73,10 @@ other references.
 | CLI, or a terminal picture of curl | vhs tape, plus a script whose exit code is the proof | `references/vhs.md` |
 | Library, or a CLI with no picture | Script that imports the shipped module, or a captured transcript of that run | `references/script-run.md` |
 
+**Opt-in add-on:** when the user asks for a narrated demo or a video for humans to watch,
+read `references/narrated-demo.md` after the UI claims are scored. It voices PROVEN UI
+claims only. Never offer it unprompted or run it by default.
+
 Default for HTTP is test-drive's API scenario when that plugin is installed. It already
 records the request, the response, and the server log, with no browser. Without
 test-drive, use a Playwright `request` trace. Use Hurl or `.http` only in that same
@@ -140,6 +144,9 @@ the block in the reply and also write it to the gitignored output directory as
 **Assumptions:** API at `http://127.0.0.1:3000`. Orders table empty before the run. Auth header is `Bearer test-token` (a fixture).
 
 **Layout:** replay script `evidence/orders.spec.ts` (checked in). Output under `evidence/out/` (gitignored).
+
+When a narrated demo was made, add one line under the table with the MP4 path
+(`references/narrated-demo.md`).
 ```
 
 One row per claim. `Why` is the observation or the blocker, not a restatement of the status word. `Re-run` is one command from the repo root.
